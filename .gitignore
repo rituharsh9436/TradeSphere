@@ -1,9 +1,11 @@
 # Dependency directories
 backend/node_modules/
+node_modules/
 
 .claude
 
 # Environment variables
+.env
 backend/.env
 backend/.env.local
 backend/.env.development
@@ -25,5 +27,9 @@ yarn-error.log*
 ehthumbs.db
 Thumbs.db
 
-.env
-node_modules/
+# Build artifacts
+dist/
+build/
+
+# IDE
+.vscode/

@@ -2,6 +2,10 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -11,10 +15,6 @@
     "db:reset": "npm run db:drop && npm run db:init",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
     "decimal.js": "^10.6.0",
