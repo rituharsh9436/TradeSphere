@@ -1,0 +1,93 @@
+# 📋 Project TODO — Paper Trading & Virtual Portfolio Engine
+
+Progress tracker for the backend build. See `product_description.md` for the full
+product spec and `backend/tests/scenario.test.js` for the integration suite.
+
+**Legend:** ✅ done · 🚧 in progress · ⬜ not started
+
+_Last updated: 2026-06-20 (Step 5 complete)_
+
+---
+
+## ✅ Step 1 — Foundation & tooling
+- [x] Fix `init-db.js` schema typo (`created._at` → `created_at`) that aborted migration
+- [x] Make migration idempotent (`CREATE TABLE IF NOT EXISTS`)
+- [x] Make migration fail loudly (`process.exitCode = 1` on error)
+- [x] Add npm scripts: `start`, `dev`, `db:init`
+
+## ✅ Step 2 — Schema hardening
+- [x] CHECK enums on `asset_class`, `order_type`, `side`, `status`, `transaction_type`
+- [x] `check_limit_has_target` constraint (LIMIT needs price, MARKET must not)
+- [x] New `market_prices` table (price source for valuation & limit triggers)
+- [x] Indexes on hot paths (orders, transactions, positions)
+- [x] Append-only enforcement on `transactions` via DB trigger (rejects UPDATE/DELETE)
+- [x] Seed initial prices (AAPL=195, MSFT=430, TSLA=250)
+
+## ✅ Step 3 — Layered architecture
+- [x] `routes → controllers → services → repositories` separation
+- [x] Central error handler (maps PG codes: 23505→409, 23514/23502→400, 22P02→400)
+- [x] `AppError`, `catchAsync`, `withTransaction` utilities
+- [x] Users + Wallet vertical slice
+- [x] Endpoints: `POST /api/users`, `GET /api/users/:id`, `GET /api/users/:id/wallet`
+
+## ✅ Step 4 — Market order engine
+- [x] `order.service` with atomic `withTransaction` + `SELECT … FOR UPDATE` wallet lock
+- [x] `decimal.js` money math (4 dp); quantity-weighted average buy price
+- [x] Atomic write of wallet + position + order(FILLED) + ledger row
+- [x] Endpoints: `POST /api/orders`, `GET /api/orders/user/:userId`
+- [x] Verified: overdraft protection, oversell protection under concurrency
+
+## ✅ Testing
+- [x] Integration suite (`npm test`, Node built-in runner, no deps) — 9 cases green
+- [x] Edge cases: funds, holdings, symbol, quantity, malformed/nonexistent IDs
+- [x] Concurrency invariants: no lost updates, overdraft cap, oversell cap
+- [x] Ledger ↔ wallet ↔ positions reconciliation
+
+---
+
+## ✅ Step 5 — Portfolio valuation
+- [x] `GET /api/users/:id/positions` — valued holdings (tests now use this, not DB)
+- [x] `GET /api/users/:id/portfolio` — cash + holdings × live price → equity, P/L, ROI
+- [x] `portfolio.service` + `portfolio.repository` (single positions⋈prices join)
+- [x] Unpriced-asset handling (`unpricedSymbols`, excluded from totals)
+- [x] Tests (`tests/portfolio.test.js`) — valuation, P/L on price move, ROI,
+      totals reconciliation, unpriced asset, 404/400 paths (6 cases, suite now 15)
+
+## ⬜ Step 6 — Market price ingestion
+- [ ] `PATCH /api/market/prices` (or feed) to update `market_prices`
+- [ ] Decide price source: live provider API vs. simulated tick generator
+- [ ] (Spec) WebSocket push of live prices / portfolio value
+
+## ⬜ Step 7 — Limit orders
+- [ ] Accept LIMIT orders (status `PENDING`, store `target_price`)
+- [ ] Background worker: scan PENDING orders vs `market_prices`, fill when crossed
+- [ ] `DELETE /api/orders/:id` — cancel a pending order
+- [ ] Tests: trigger-on-cross, cancel, partial scenarios
+
+## ⬜ Step 8 — Leaderboard & ranking
+- [ ] `GET /api/leaderboard` ranked by ROI / portfolio value
+- [ ] Efficient aggregation query (indexed)
+- [ ] Tests
+
+## ⬜ Step 9 — Reset / restart ("panic button")
+- [ ] `POST /api/users/:id/reset` — liquidate positions, cancel pending orders,
+      restore wallet to starting balance
+- [ ] Record as `RESET` ledger entries (preserve audit trail)
+- [ ] Tests for full-reset invariants
+
+## ⬜ Step 10 — Authentication & accounts
+- [ ] Decide strategy (JWT vs. session)
+- [ ] `password_hash` on users; register/login endpoints
+- [ ] Auth middleware; scope wallet/orders/portfolio to the authenticated user
+- [ ] Tests
+
+---
+
+## 🔧 Cross-cutting / backlog
+- [ ] Input validation layer (e.g. schema validation middleware)
+- [ ] Request logging & structured error logging
+- [ ] `.env.example` committed; document required env vars
+- [ ] `docs/architecture.md` (data-flow + layer responsibilities)
+- [ ] CI workflow to run `npm test` on push
+- [ ] Rate limiting / basic security headers
+- [ ] API documentation (OpenAPI / README endpoint table)

@@ -1,5 +1,6 @@
 const userService = require('../services/user.service');
 const walletService = require('../services/wallet.service');
+const portfolioService = require('../services/portfolio.service');
 const catchAsync = require('../utils/catchAsync');
 
 // Thin HTTP adapters: parse the request, call the service, shape the response.
@@ -19,6 +20,16 @@ const userController = {
   getWallet: catchAsync(async (req, res) => {
     const wallet = await walletService.getByUserId(req.params.id);
     res.status(200).json({ status: 'success', data: wallet });
+  }),
+
+  getPositions: catchAsync(async (req, res) => {
+    const positions = await portfolioService.getPositions(req.params.id);
+    res.status(200).json({ status: 'success', results: positions.length, data: positions });
+  }),
+
+  getPortfolio: catchAsync(async (req, res) => {
+    const portfolio = await portfolioService.getPortfolio(req.params.id);
+    res.status(200).json({ status: 'success', data: portfolio });
   }),
 };
 
