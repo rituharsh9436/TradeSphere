@@ -72,15 +72,13 @@ async function getBalance(userId) {
   return r.body.data.balance;
 }
 
-// Reads positions straight from the DB (no positions API yet) for verification.
+// Reads a holding's quantity via the positions API. Returns '0' when the user
+// holds no (active) position in the symbol — positions only lists quantity > 0.
 async function getPosition(userId, symbol) {
-  const { rows } = await pool.query(
-    `SELECT p.quantity FROM positions p
-     JOIN assets a ON a.id = p.asset_id
-     WHERE p.user_id = $1 AND a.symbol = $2`,
-    [userId, symbol]
-  );
-  return rows[0] ? rows[0].quantity : null;
+  const r = await api('GET', `/api/users/${userId}/positions`);
+  assert.equal(r.status, 200);
+  const holding = r.body.data.find((p) => p.symbol === symbol);
+  return holding ? holding.quantity : '0';
 }
 
 const eq = (a, b) => new Decimal(a).eq(b);

@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-06-20_
+_Last updated: 2026-06-20 (Step 5 complete)_
 
 ---
 
@@ -45,11 +45,13 @@ _Last updated: 2026-06-20_
 
 ---
 
-## ⬜ Step 5 — Portfolio valuation _(next)_
-- [ ] `GET /api/users/:id/positions` — list holdings (replace direct DB read in tests)
-- [ ] `GET /api/users/:id/portfolio` — positions × live price → total equity, cash, P/L
-- [ ] `position.service` / `portfolio.service`
-- [ ] Tests for valuation math (incl. unpriced asset handling)
+## ✅ Step 5 — Portfolio valuation
+- [x] `GET /api/users/:id/positions` — valued holdings (tests now use this, not DB)
+- [x] `GET /api/users/:id/portfolio` — cash + holdings × live price → equity, P/L, ROI
+- [x] `portfolio.service` + `portfolio.repository` (single positions⋈prices join)
+- [x] Unpriced-asset handling (`unpricedSymbols`, excluded from totals)
+- [x] Tests (`tests/portfolio.test.js`) — valuation, P/L on price move, ROI,
+      totals reconciliation, unpriced asset, 404/400 paths (6 cases, suite now 15)
 
 ## ⬜ Step 6 — Market price ingestion
 - [ ] `PATCH /api/market/prices` (or feed) to update `market_prices`
