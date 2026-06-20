@@ -9,7 +9,7 @@
     "db:init": "node src/scripts/init-db.js",
     "db:drop": "node src/scripts/reset-db.js",
     "db:reset": "npm run db:drop && npm run db:init",
-    "test": "node --test \"tests/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "keywords": [],
   "author": "",
