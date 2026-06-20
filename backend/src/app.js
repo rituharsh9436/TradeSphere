@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 
+const apiRoutes = require('./routes');
+const { notFound, errorHandler } = require('./middleware/errorHandler');
+
 const app = express();
 
 // Middleware
@@ -12,8 +15,11 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'UP', message: 'Trading engine is running.' });
 });
 
-// Future routes will be mounted here
-// const apiRoutes = require('./routes/api.routes');
-// app.use('/api', apiRoutes);
+// API routes
+app.use('/api', apiRoutes);
+
+// 404 + central error handler (must be registered last)
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;
