@@ -1,6 +1,8 @@
 # Dependency directories
 backend/node_modules/
 
+.claude
+
 # Environment variables
 backend/.env
 backend/.env.local
@@ -22,3 +24,6 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+.env
+node_modules/
