@@ -26,3 +26,54 @@ test('price_history table exists with expected columns', async () => {
   assert.equal(cols.price, 'numeric');
   assert.match(cols.ts, /timestamp/);
 });
+
+const priceHistoryRepository = require('../src/repositories/priceHistory.repository');
+
+// A far-past window unique to this suite so ticks never collide with live data.
+const W_FROM = new Date('2000-01-01T00:00:00.000Z');
+const W_TO = new Date('2000-01-01T00:10:00.000Z');
+
+async function assetIdOf(symbol) {
+  const { rows } = await pool.query('SELECT id FROM assets WHERE symbol = $1', [symbol]);
+  return rows[0].id;
+}
+
+test('priceHistory: append + aggregateCandles builds OHLC buckets', async () => {
+  const aaplId = await assetIdOf('AAPL');
+  // Clean the window first so reruns are deterministic.
+  await pool.query('DELETE FROM price_history WHERE asset_id = $1 AND ts >= $2 AND ts < $3', [
+    aaplId, W_FROM, W_TO,
+  ]);
+
+  // Two 60s buckets. Bucket A (00:00): 100,105,102 -> O100 H105 L100 C102.
+  // Bucket B (00:01): 103,99       -> O103 H103 L99  C99.
+  const ticks = [
+    ['2000-01-01T00:00:10.000Z', '100'],
+    ['2000-01-01T00:00:20.000Z', '105'],
+    ['2000-01-01T00:00:50.000Z', '102'],
+    ['2000-01-01T00:01:05.000Z', '103'],
+    ['2000-01-01T00:01:40.000Z', '99'],
+  ];
+  for (const [ts, price] of ticks) {
+    await priceHistoryRepository.append(aaplId, price, new Date(ts));
+  }
+
+  const candles = await priceHistoryRepository.aggregateCandles({
+    symbol: 'AAPL', intervalSec: 60, from: W_FROM, to: W_TO,
+  });
+
+  assert.equal(candles.length, 2);
+  assert.deepEqual(
+    { o: candles[0].open, h: candles[0].high, l: candles[0].low, c: candles[0].close },
+    { o: '100.0000', h: '105.0000', l: '100.0000', c: '102.0000' }
+  );
+  assert.deepEqual(
+    { o: candles[1].open, h: candles[1].high, l: candles[1].low, c: candles[1].close },
+    { o: '103.0000', h: '103.0000', l: '99.0000', c: '99.0000' }
+  );
+  assert.equal(typeof candles[0].time, 'string');
+
+  await pool.query('DELETE FROM price_history WHERE asset_id = $1 AND ts >= $2 AND ts < $3', [
+    aaplId, W_FROM, W_TO,
+  ]);
+});
