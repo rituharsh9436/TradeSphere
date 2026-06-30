@@ -77,3 +77,26 @@ test('priceHistory: append + aggregateCandles builds OHLC buckets', async () => 
     aaplId, W_FROM, W_TO,
   ]);
 });
+
+const marketPriceRepository = require('../src/repositories/marketPrice.repository');
+const assetRepository = require('../src/repositories/asset.repository');
+
+test('marketPrice: upsertLatest + reads, asset.findAllActive', async () => {
+  const msftId = await assetIdOf('MSFT');
+
+  await marketPriceRepository.upsertLatest(msftId, '441.2500');
+  const one = await marketPriceRepository.findBySymbol('MSFT');
+  assert.equal(one.symbol, 'MSFT');
+  assert.equal(one.price, '441.2500');
+
+  const all = await marketPriceRepository.findAll();
+  assert.ok(all.find((p) => p.symbol === 'MSFT' && p.price === '441.2500'));
+
+  assert.equal(await marketPriceRepository.findBySymbol('NOSUCH'), null);
+
+  const active = await assetRepository.findAllActive();
+  assert.ok(active.find((a) => a.symbol === 'MSFT' && a.id === msftId));
+
+  // Restore seed price for order-independence.
+  await marketPriceRepository.upsertLatest(msftId, '430.0000');
+});
