@@ -10,6 +10,7 @@ const assert = require('node:assert/strict');
 const pool = require('../src/config/database');
 
 after(async () => {
+  if (httpServer) await new Promise((r) => httpServer.close(r));
   await pool.end();
 });
 
@@ -151,4 +152,41 @@ test('market.service.getCandles: returns OHLC from stored ticks', async () => {
   await pool.query('DELETE FROM price_history WHERE asset_id = $1 AND ts >= $2 AND ts < $3', [
     aaplId, W_FROM, W_TO,
   ]);
+});
+
+const app = require('../src/app');
+
+let httpServer;
+let base;
+before(async () => {
+  httpServer = http.createServer(app);
+  await new Promise((r) => httpServer.listen(0, '127.0.0.1', r));
+  base = `http://127.0.0.1:${httpServer.address().port}`;
+});
+
+async function apiGet(path) {
+  const res = await fetch(base + path);
+  let body = null;
+  try { body = await res.json(); } catch { /* empty */ }
+  return { status: res.status, body };
+}
+
+test('GET /api/market/prices returns seeded latest prices', async () => {
+  const r = await apiGet('/api/market/prices');
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.find((p) => p.symbol === 'AAPL'));
+});
+
+test('GET /api/market/prices/:symbol — known 200, unknown 404', async () => {
+  assert.equal((await apiGet('/api/market/prices/AAPL')).status, 200);
+  assert.equal((await apiGet('/api/market/prices/NOSUCH')).status, 404);
+});
+
+test('GET /api/market/candles — validation + missing symbol', async () => {
+  assert.equal((await apiGet('/api/market/candles?interval=15')).status, 400); // no symbol
+  assert.equal((await apiGet('/api/market/candles?symbol=AAPL&interval=0')).status, 400);
+  assert.equal((await apiGet('/api/market/candles?symbol=NOSUCH&interval=15')).status, 404);
+  const ok = await apiGet('/api/market/candles?symbol=AAPL&interval=60');
+  assert.equal(ok.status, 200);
+  assert.ok(Array.isArray(ok.body.data.candles));
 });
