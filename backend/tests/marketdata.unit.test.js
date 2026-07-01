@@ -88,3 +88,34 @@ test('finnhubTickSource: subscribes to all symbols on open', () => {
   src.stop();
   assert.equal(FakeWS.last.closed, true);
 });
+
+const { isUsMarketOpen } = require('../src/marketdata/marketHours');
+const createTickSource = require('../src/marketdata/tickSource');
+
+test('isUsMarketOpen: weekday midday open, weekend + off-hours closed', () => {
+  // 2020-01-02 (Thu) 14:30 UTC = 09:30 ET (EST) -> open.
+  assert.equal(isUsMarketOpen(new Date('2020-01-02T14:30:00Z')), true);
+  // 2020-01-02 (Thu) 22:00 UTC = 17:00 ET -> closed.
+  assert.equal(isUsMarketOpen(new Date('2020-01-02T22:00:00Z')), false);
+  // 2020-01-04 is a Saturday -> closed.
+  assert.equal(isUsMarketOpen(new Date('2020-01-04T15:00:00Z')), false);
+});
+
+test('createTickSource: picks finnhub only with key + open market', () => {
+  const make = (tag) => () => ({ tag });
+  const open = createTickSource({
+    apiKey: 'k', isMarketOpen: true, makeFinnhub: make('fh'), makeSimulated: make('sim'),
+  });
+  assert.equal(open.mode, 'finnhub');
+  assert.equal(open.source.tag, 'fh');
+
+  const closed = createTickSource({
+    apiKey: 'k', isMarketOpen: false, makeFinnhub: make('fh'), makeSimulated: make('sim'),
+  });
+  assert.equal(closed.mode, 'simulated');
+
+  const noKey = createTickSource({
+    apiKey: '', isMarketOpen: true, makeFinnhub: make('fh'), makeSimulated: make('sim'),
+  });
+  assert.equal(noKey.mode, 'simulated');
+});
