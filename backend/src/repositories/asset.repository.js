@@ -28,6 +28,16 @@ const assetRepository = {
     );
     return rows[0] ? rows[0].price : null;
   },
+
+  // Active, tradable assets — used to seed the tick simulator and to choose the
+  // Finnhub symbols to subscribe to.
+  async findAllActive(client = pool) {
+    const { rows } = await client.query(
+      `SELECT id, symbol, name, asset_class, is_active
+       FROM assets WHERE is_active = TRUE ORDER BY symbol`
+    );
+    return rows;
+  },
 };
 
 module.exports = assetRepository;

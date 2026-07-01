@@ -83,6 +83,15 @@ const createTables = async () => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 8. Price History (raw ticks) — append-only source for candlestick
+    --    aggregation. market_prices keeps only the latest; this keeps every tick.
+    CREATE TABLE IF NOT EXISTS price_history (
+        asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+        price DECIMAL(15, 4) NOT NULL CHECK (price >= 0),
+        ts TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+    );
+
     -- ---------------------------------------------------------------------
     -- Indexes for the hot read paths (portfolio, order book, leaderboard)
     -- ---------------------------------------------------------------------
@@ -91,6 +100,7 @@ const createTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id);
     CREATE INDEX IF NOT EXISTS idx_positions_user_id ON positions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_price_history_asset_ts ON price_history(asset_id, ts);
 
     -- ---------------------------------------------------------------------
     -- Append-only enforcement: the transactions ledger rejects UPDATE/DELETE
