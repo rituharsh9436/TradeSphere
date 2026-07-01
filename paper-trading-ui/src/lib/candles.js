@@ -25,6 +25,12 @@ export function toChartCandles(apiCandles) {
 export function applyTickToCandles(candles, tick, intervalSec) {
   const time = bucketStart(Date.parse(tick.ts), intervalSec);
   const price = Number(tick.price);
+  // A malformed tick (unparseable ts or price) yields NaN, which slips past both
+  // the `>` and `<` guards below and would silently corrupt the last candle —
+  // drop it instead.
+  if (Number.isNaN(time) || Number.isNaN(price)) {
+    return candles;
+  }
   const last = candles[candles.length - 1];
 
   if (!last || time > last.time) {
