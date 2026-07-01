@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
+// This file intentionally exports both the provider and the useActiveUser hook —
+// they are one cohesive unit. That trips react-refresh's "only export components"
+// rule (a dev-HMR heuristic), which we opt out of here rather than split the pair.
 import { createContext, useContext, useEffect, useState } from "react";
 
 const STORAGE_KEY = "mlx.activeUser";
@@ -18,8 +22,12 @@ export function ActiveUserProvider({ children }) {
   const [activeUser, setActiveUser] = useState(readStored);
 
   useEffect(() => {
-    if (activeUser) localStorage.setItem(STORAGE_KEY, JSON.stringify(activeUser));
-    else localStorage.removeItem(STORAGE_KEY);
+    try {
+      if (activeUser) localStorage.setItem(STORAGE_KEY, JSON.stringify(activeUser));
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* storage unavailable (private mode / quota) — non-fatal */
+    }
   }, [activeUser]);
 
   return (
