@@ -187,3 +187,36 @@ test('market.service.getCandles: rejects bad interval and range before DB', asyn
   // 1s buckets over a 24h default window = 86400 buckets > MAX_BUCKETS.
   await rejectsWith(() => marketService.getCandles({ symbol: 'AAPL', interval: '1' }), 400);
 });
+
+const { buildAssetIdBySymbol, createMarketRuntime } = require('../src/marketdata/runtime');
+
+test('buildAssetIdBySymbol maps symbol -> id', () => {
+  const map = buildAssetIdBySymbol([{ id: 'a1', symbol: 'AAPL' }, { id: 'm1', symbol: 'MSFT' }]);
+  assert.equal(map.get('AAPL'), 'a1');
+  assert.equal(map.get('MSFT'), 'm1');
+});
+
+test('createMarketRuntime: starts worker and reports mode', () => {
+  let started = false;
+  const runtime = createMarketRuntime({
+    assets: [{ id: 'a1', symbol: 'AAPL' }],
+    latestPrices: [{ symbol: 'AAPL', price: '100' }],
+    apiKey: '',
+    isMarketOpen: false,
+    marketSocket: { broadcast() {} },
+    deps: {
+      createTickSource: ({ makeSimulated }) => ({ source: makeSimulated(), mode: 'simulated' }),
+      createSimulatedTickSource: () => ({ onTick() {}, start() { started = true; }, stop() {} }),
+      createFinnhubTickSource: () => ({ onTick() {}, start() {}, stop() {} }),
+      createIngestionWorker: ({ tickSource }) => ({
+        start() { tickSource.start(); }, stop() { tickSource.stop(); },
+      }),
+      marketPriceRepository: {},
+      priceHistoryRepository: {},
+    },
+  });
+  assert.equal(runtime.mode, 'simulated');
+  runtime.start();
+  assert.equal(started, true);
+  runtime.stop();
+});
