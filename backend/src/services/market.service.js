@@ -5,7 +5,10 @@ const priceHistoryRepository = require('../repositories/priceHistory.repository'
 
 const DEFAULT_INTERVAL_SEC = 15;
 const MAX_INTERVAL_SEC = 86400; // 1 day
-const MAX_BUCKETS = 5000; // cap response size / query cost
+// Cap response size / query cost. Must clear a full default-interval day
+// (24h / 15s = 5760) so the default /candles request isn't rejected, while
+// still refusing pathological ranges like 24h of 1s buckets (86400).
+const MAX_BUCKETS = 6000;
 const DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const marketService = {
