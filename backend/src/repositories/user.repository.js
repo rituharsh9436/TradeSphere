@@ -29,6 +29,13 @@ const userRepository = {
     );
     return rows[0] || null;
   },
+
+  async findAll(client = pool) {
+    const { rows } = await client.query(
+      `SELECT id, username, email, created_at FROM users ORDER BY created_at ASC`
+    );
+    return rows;
+  },
 };
 
 module.exports = userRepository;
