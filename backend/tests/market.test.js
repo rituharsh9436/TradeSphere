@@ -100,3 +100,27 @@ test('marketPrice: upsertLatest + reads, asset.findAllActive', async () => {
   // Restore seed price for order-independence.
   await marketPriceRepository.upsertLatest(msftId, '430.0000');
 });
+
+const http = require('node:http');
+const WebSocket = require('ws');
+const createMarketSocket = require('../src/marketdata/marketSocket');
+
+test('marketSocket: broadcast reaches a connected client', async () => {
+  const server = http.createServer();
+  const socket = createMarketSocket();
+  socket.attach(server);
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const port = server.address().port;
+
+  const client = new WebSocket(`ws://127.0.0.1:${port}/ws/market`);
+  const got = new Promise((resolve) => client.on('message', (m) => resolve(JSON.parse(m))));
+  await new Promise((r) => client.on('open', r));
+
+  socket.broadcast({ type: 'tick', symbol: 'AAPL', price: '195.0000' });
+  const msg = await got;
+  assert.deepEqual(msg, { type: 'tick', symbol: 'AAPL', price: '195.0000' });
+
+  client.close();
+  socket.close();
+  await new Promise((r) => server.close(r));
+});
