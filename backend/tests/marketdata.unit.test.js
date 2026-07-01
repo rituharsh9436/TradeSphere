@@ -161,3 +161,29 @@ test('ingestionWorker: broadcasts every tick, throttles DB writes per symbol', (
   assert.deepEqual(appends, [['aapl-id', '100.0000'], ['aapl-id', '102.0000']]);
   assert.deepEqual(broadcasts[0], { type: 'tick', symbol: 'AAPL', price: '100.0000', ts: 't1' });
 });
+
+const marketService = require('../src/services/market.service');
+
+async function rejectsWith(fn, statusCode) {
+  try {
+    await fn();
+    assert.fail('expected rejection');
+  } catch (err) {
+    assert.equal(err.statusCode, statusCode, err.message);
+  }
+}
+
+test('market.service.getCandles: rejects bad interval and range before DB', async () => {
+  await rejectsWith(() => marketService.getCandles({ symbol: 'AAPL', interval: '0' }), 400);
+  await rejectsWith(() => marketService.getCandles({ symbol: 'AAPL', interval: 'abc' }), 400);
+  await rejectsWith(() => marketService.getCandles({ symbol: 'AAPL', interval: '99999999' }), 400);
+  await rejectsWith(
+    () => marketService.getCandles({
+      symbol: 'AAPL', interval: '15',
+      from: '2020-01-02T00:00:00Z', to: '2020-01-01T00:00:00Z', // from >= to
+    }),
+    400
+  );
+  // 1s buckets over a 24h default window = 86400 buckets > MAX_BUCKETS.
+  await rejectsWith(() => marketService.getCandles({ symbol: 'AAPL', interval: '1' }), 400);
+});
