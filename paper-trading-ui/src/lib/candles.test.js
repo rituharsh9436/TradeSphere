@@ -40,3 +40,25 @@ test('applyTickToCandles seeds the first candle from an empty array', () => {
   const next = applyTickToCandles([], { price: '50.0000', ts: '2000-01-01T00:00:10.000Z' }, 15);
   expect(next).toEqual([{ time: 946684800, open: 50, high: 50, low: 50, close: 50 }]);
 });
+
+test('applyTickToCandles does not mutate the input array or its candles', () => {
+  const candles = [
+    { time: 946684800, open: 100, high: 100, low: 100, close: 100 },
+    { time: 946684860, open: 103, high: 103, low: 103, close: 103 },
+  ];
+  const snapshot = JSON.parse(JSON.stringify(candles));
+  const firstRef = candles[0];
+  // In-bucket update on a 2+ element array.
+  const next = applyTickToCandles(candles, { price: '99.0000', ts: '2000-01-01T00:01:30.000Z' }, 60);
+  expect(candles).toEqual(snapshot);   // input untouched by value
+  expect(next).not.toBe(candles);      // new array returned
+  expect(next[0]).toBe(firstRef);      // earlier candle kept by reference (not re-copied)
+  expect(next[1]).not.toBe(candles[1]); // only the last candle is replaced
+  expect(next[1]).toEqual({ time: 946684860, open: 103, high: 103, low: 99, close: 99 });
+});
+
+test('applyTickToCandles ignores a malformed tick (bad ts or price)', () => {
+  const candles = [{ time: 946684800, open: 100, high: 100, low: 100, close: 100 }];
+  expect(applyTickToCandles(candles, { price: '103.0000', ts: undefined }, 60)).toBe(candles);
+  expect(applyTickToCandles(candles, { price: 'abc', ts: '2000-01-01T00:00:20.000Z' }, 60)).toBe(candles);
+});
