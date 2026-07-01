@@ -119,3 +119,45 @@ test('createTickSource: picks finnhub only with key + open market', () => {
   });
   assert.equal(noKey.mode, 'simulated');
 });
+
+const createIngestionWorker = require('../src/marketdata/ingestionWorker');
+
+function fakeSource() {
+  let cb = null;
+  return {
+    onTick(fn) { cb = fn; },
+    start() {},
+    stop() {},
+    push(tick) { cb(tick); },
+  };
+}
+
+test('ingestionWorker: broadcasts every tick, throttles DB writes per symbol', () => {
+  const upserts = [];
+  const appends = [];
+  const broadcasts = [];
+  const src = fakeSource();
+  let clock = 1000;
+
+  const worker = createIngestionWorker({
+    tickSource: src,
+    marketPriceRepository: { upsertLatest: async (id, p) => { upserts.push([id, p]); } },
+    priceHistoryRepository: { append: async (id, p) => { appends.push([id, p]); } },
+    marketSocket: { broadcast: (m) => broadcasts.push(m) },
+    assetIdBySymbol: new Map([['AAPL', 'aapl-id']]),
+    throttleMs: 1000,
+    now: () => clock,
+  });
+  worker.start();
+
+  src.push({ symbol: 'AAPL', price: '100.0000', ts: 't1' }); // clock 1000 -> writes
+  src.push({ symbol: 'AAPL', price: '101.0000', ts: 't2' }); // clock 1000 -> throttled
+  clock = 2000;
+  src.push({ symbol: 'AAPL', price: '102.0000', ts: 't3' }); // clock 2000 -> writes
+  src.push({ symbol: 'NOPE', price: '5.0000', ts: 't4' });   // unknown symbol -> skipped DB
+
+  assert.equal(broadcasts.length, 4); // every tick broadcast
+  assert.deepEqual(upserts, [['aapl-id', '100.0000'], ['aapl-id', '102.0000']]);
+  assert.deepEqual(appends, [['aapl-id', '100.0000'], ['aapl-id', '102.0000']]);
+  assert.deepEqual(broadcasts[0], { type: 'tick', symbol: 'AAPL', price: '100.0000', ts: 't1' });
+});
