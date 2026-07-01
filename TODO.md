@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-06-20 (Step 5 complete)_
+_Last updated: 2026-07-01 (Step 6a complete)_
 
 ---
 
@@ -53,10 +53,18 @@ _Last updated: 2026-06-20 (Step 5 complete)_
 - [x] Tests (`tests/portfolio.test.js`) — valuation, P/L on price move, ROI,
       totals reconciliation, unpriced asset, 404/400 paths (6 cases, suite now 15)
 
-## ⬜ Step 6 — Market price ingestion
-- [ ] `PATCH /api/market/prices` (or feed) to update `market_prices`
-- [ ] Decide price source: live provider API vs. simulated tick generator
-- [ ] (Spec) WebSocket push of live prices / portfolio value
+## 🚧 Step 6 — Market price ingestion
+### ✅ Step 6a — Backend ingestion & streaming
+- [x] `price_history` ticks table + index; `market_prices` stays latest-only
+- [x] Tick sources: Finnhub trades WebSocket + simulated random-walk fallback
+- [x] Market-hours/key selector (live when open + keyed, else simulator)
+- [x] Ingestion worker: upsert latest + append history (throttled) + WS broadcast
+- [x] Browser-facing WebSocket (`/ws/market`) pushing live ticks
+- [x] `GET /api/market/prices`, `/prices/:symbol`, `/candles` (on-read OHLC)
+- [x] Server lifecycle wiring + graceful shutdown; `.env.example`
+### ⬜ Step 6b — Frontend live candlestick chart
+- [ ] Candlestick chart (e.g. TradingView lightweight-charts) consuming `/candles` + WS
+- [ ] Timeframe switcher; live-forming candle from the WS tick stream
 
 ## ⬜ Step 7 — Limit orders
 - [ ] Accept LIMIT orders (status `PENDING`, store `target_price`)

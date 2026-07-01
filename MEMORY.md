@@ -26,8 +26,11 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/users/:id/portfolio` | user.routes.js | `userController.getPortfolio` | `portfolioService.getPortfolio` |
 | `POST /api/orders` | order.routes.js | `orderController.placeMarket` | `orderService.placeMarketOrder` |
 | `GET /api/orders/user/:userId` | order.routes.js | `orderController.listForUser` | `orderService.listOrders` |
+| `GET /api/market/prices` | market.routes.js | `marketController.getPrices` | `marketService.getPrices` |
+| `GET /api/market/prices/:symbol` | market.routes.js | `marketController.getPrice` | `marketService.getPriceBySymbol` |
+| `GET /api/market/candles` | market.routes.js | `marketController.getCandles` | `marketService.getCandles` |
 
-`routes/index.js` mounts `/users` and `/orders`. Every controller method is wrapped
+`routes/index.js` mounts `/users`, `/orders` and `/market`. Every controller method is wrapped
 in `utils/catchAsync.js` so rejected promises forward to the central error handler.
 
 ## Core write path — place market order
@@ -56,6 +59,16 @@ starting cash **$100,000**). A user can never exist without a wallet.
   unrealized P/L, ROI vs $100k starting capital. Tracks `unpricedSymbols`.
 - `walletService.getByUserId` (wallets), `userService.getById` (users),
   `orderService.listOrders` → `orderRepository.listByUser` (orders ⋈ assets).
+
+## Market data pipeline (Step 6a)
+`server.js` builds a tick pipeline at boot: `marketdata/tickSource.js` picks the
+Finnhub trades WebSocket (`finnhubTickSource`) when `FINNHUB_API_KEY` is set AND
+the US market is open (`marketHours.isUsMarketOpen`), else the `simulatedTickSource`
+random walk. `ingestionWorker` fans each `{symbol,price,ts}` tick to: WS broadcast
+(`marketSocket`, path `/ws/market`), `marketPriceRepository.upsertLatest`
+(market_prices) and `priceHistoryRepository.append` (price_history) — the two DB
+writes throttled to 1/sec/symbol. Candlesticks are aggregated on-read from
+price_history by `priceHistoryRepository.aggregateCandles` (OHLC per time bucket).
 
 ## Error handling
 Any layer throws `utils/AppError.js` (statusCode, isOperational) → caught by
