@@ -124,3 +124,31 @@ test('marketSocket: broadcast reaches a connected client', async () => {
   socket.close();
   await new Promise((r) => server.close(r));
 });
+
+const marketService = require('../src/services/market.service');
+
+test('market.service.getCandles: returns OHLC from stored ticks', async () => {
+  const aaplId = await assetIdOf('AAPL');
+  await pool.query('DELETE FROM price_history WHERE asset_id = $1 AND ts >= $2 AND ts < $3', [
+    aaplId, W_FROM, W_TO,
+  ]);
+  for (const [ts, price] of [
+    ['2000-01-01T00:00:10.000Z', '100'],
+    ['2000-01-01T00:00:50.000Z', '108'],
+  ]) {
+    await priceHistoryRepository.append(aaplId, price, new Date(ts));
+  }
+
+  const out = await marketService.getCandles({
+    symbol: 'AAPL', interval: '60',
+    from: W_FROM.toISOString(), to: W_TO.toISOString(),
+  });
+  assert.equal(out.intervalSec, 60);
+  assert.equal(out.candles.length, 1);
+  assert.equal(out.candles[0].open, '100.0000');
+  assert.equal(out.candles[0].close, '108.0000');
+
+  await pool.query('DELETE FROM price_history WHERE asset_id = $1 AND ts >= $2 AND ts < $3', [
+    aaplId, W_FROM, W_TO,
+  ]);
+});
