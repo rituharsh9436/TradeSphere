@@ -139,3 +139,30 @@ test('leaderboard.service.getLeaderboard: shapes rank, equity, ROI, unpriced fla
   await setPrice('AAPL', '195.0000');
   await setPrice('MSFT', '430.0000');
 });
+
+test('GET /api/leaderboard returns ranked entries with the expected shape', async () => {
+  const r = await apiJson('GET', '/api/leaderboard');
+  assert.equal(r.status, 200);
+  assert.equal(r.body.status, 'success');
+  assert.ok(Array.isArray(r.body.data));
+  assert.equal(r.body.results, r.body.data.length);
+  const first = r.body.data[0];
+  assert.equal(first.rank, 1);
+  for (const key of ['userId', 'username', 'totalEquity', 'roiPct', 'hasUnpricedHoldings']) {
+    assert.ok(key in first, `entry has ${key}`);
+  }
+});
+
+test('GET /api/leaderboard?limit caps results; invalid limit -> 400', async () => {
+  // Ensure at least two users exist so limit=1 is a real cap.
+  await registerUser();
+  await registerUser();
+  const one = await apiJson('GET', '/api/leaderboard?limit=1');
+  assert.equal(one.status, 200);
+  assert.equal(one.body.data.length, 1);
+  assert.equal(one.body.data[0].rank, 1);
+
+  assert.equal((await apiJson('GET', '/api/leaderboard?limit=0')).status, 400);
+  assert.equal((await apiJson('GET', '/api/leaderboard?limit=abc')).status, 400);
+  assert.equal((await apiJson('GET', '/api/leaderboard?limit=999')).status, 400);
+});
