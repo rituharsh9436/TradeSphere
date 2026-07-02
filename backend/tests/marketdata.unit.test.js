@@ -220,3 +220,62 @@ test('createMarketRuntime: starts worker and reports mode', () => {
   assert.equal(started, true);
   runtime.stop();
 });
+
+test('ingestionWorker: calls onPriceUpdate on the throttled path, guarded per symbol', async () => {
+  const calls = [];
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  const src = fakeSource();
+  let clock = 1000;
+
+  const worker = createIngestionWorker({
+    tickSource: src,
+    marketPriceRepository: { upsertLatest: async () => {} },
+    priceHistoryRepository: { append: async () => {} },
+    marketSocket: { broadcast: () => {} },
+    assetIdBySymbol: new Map([['AAPL', 'aapl-id']]),
+    throttleMs: 1000,
+    now: () => clock,
+    onPriceUpdate: (u) => { calls.push(u); return gate; }, // stays in-flight until released
+  });
+  worker.start();
+
+  src.push({ symbol: 'AAPL', price: '100.0000', ts: 't1' }); // clock 1000 -> write + matcher (in-flight)
+  src.push({ symbol: 'AAPL', price: '101.0000', ts: 't2' }); // throttled -> no matcher
+  clock = 2000;
+  src.push({ symbol: 'AAPL', price: '102.0000', ts: 't3' }); // eligible but AAPL in-flight -> skipped
+  assert.deepEqual(calls, [{ symbol: 'AAPL', price: '100.0000' }]);
+
+  release();
+  await new Promise((r) => setImmediate(r)); // let the in-flight promise settle
+  clock = 3000;
+  src.push({ symbol: 'AAPL', price: '103.0000', ts: 't4' }); // no longer in-flight -> matcher runs
+  assert.deepEqual(calls, [
+    { symbol: 'AAPL', price: '100.0000' },
+    { symbol: 'AAPL', price: '103.0000' },
+  ]);
+});
+
+test('createMarketRuntime: wires onPriceUpdate to processLimitOrdersForSymbol', () => {
+  const matcherCalls = [];
+  let capturedOpts = null;
+  createMarketRuntime({
+    assets: [{ id: 'a1', symbol: 'AAPL' }],
+    latestPrices: [{ symbol: 'AAPL', price: '100' }],
+    apiKey: '',
+    isMarketOpen: false,
+    marketSocket: { broadcast() {} },
+    deps: {
+      createTickSource: ({ makeSimulated }) => ({ source: makeSimulated(), mode: 'simulated' }),
+      createSimulatedTickSource: () => ({ onTick() {}, start() {}, stop() {} }),
+      createFinnhubTickSource: () => ({ onTick() {}, start() {}, stop() {} }),
+      createIngestionWorker: (opts) => { capturedOpts = opts; return { start() {}, stop() {} }; },
+      marketPriceRepository: {},
+      priceHistoryRepository: {},
+      processLimitOrdersForSymbol: (u) => { matcherCalls.push(u); },
+    },
+  });
+  assert.equal(typeof capturedOpts.onPriceUpdate, 'function');
+  capturedOpts.onPriceUpdate({ symbol: 'AAPL', price: '99' });
+  assert.deepEqual(matcherCalls, [{ symbol: 'AAPL', price: '99' }]);
+});
