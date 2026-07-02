@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-02 (Step 6b complete)_
+_Last updated: 2026-07-02 (Step 7 complete)_
 
 ---
 
@@ -67,11 +67,11 @@ _Last updated: 2026-07-02 (Step 6b complete)_
 - [x] Timeframe switcher (15s/1m/5m/1h); live-forming candle from the WS tick stream
 - [x] Rebuilt Market page: live price list + chart + Buy/Sell (dev active user)
 
-## ⬜ Step 7 — Limit orders
-- [ ] Accept LIMIT orders (status `PENDING`, store `target_price`)
-- [ ] Background worker: scan PENDING orders vs `market_prices`, fill when crossed
-- [ ] `DELETE /api/orders/:id` — cancel a pending order
-- [ ] Tests: trigger-on-cross, cancel, partial scenarios
+## ✅ Step 7 — Limit orders
+- [x] Accept LIMIT orders (status `PENDING`, store `target_price`) via `POST /api/orders`
+- [x] Tick-driven matcher: fill PENDING limits at target when price crosses (BUY ≤, SELL ≥); insufficient → REJECTED
+- [x] `DELETE /api/orders/:id` — cancel a pending order
+- [x] Tests: fill-on-cross, reject, idempotency, cancel, validation
 
 ## ⬜ Step 8 — Leaderboard & ranking
 - [ ] `GET /api/leaderboard` ranked by ROI / portfolio value

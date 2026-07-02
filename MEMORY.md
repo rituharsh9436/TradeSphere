@@ -24,8 +24,9 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/users/:id/wallet` | user.routes.js | `userController.getWallet` | `walletService.getByUserId` |
 | `GET /api/users/:id/positions` | user.routes.js | `userController.getPositions` | `portfolioService.getPositions` |
 | `GET /api/users/:id/portfolio` | user.routes.js | `userController.getPortfolio` | `portfolioService.getPortfolio` |
-| `POST /api/orders` | order.routes.js | `orderController.placeMarket` | `orderService.placeMarketOrder` |
+| `POST /api/orders` | order.routes.js | `orderController.place` | `orderService.placeMarketOrder` / `placeLimitOrder` |
 | `GET /api/orders/user/:userId` | order.routes.js | `orderController.listForUser` | `orderService.listOrders` |
+| `DELETE /api/orders/:id` | order.routes.js | `orderController.cancel` | `orderService.cancelOrder` |
 | `GET /api/market/prices` | market.routes.js | `marketController.getPrices` | `marketService.getPrices` |
 | `GET /api/market/prices/:symbol` | market.routes.js | `marketController.getPrice` | `marketService.getPriceBySymbol` |
 | `GET /api/market/candles` | market.routes.js | `marketController.getCandles` | `marketService.getCandles` |
@@ -70,6 +71,17 @@ random walk. `ingestionWorker` fans each `{symbol,price,ts}` tick to: WS broadca
 (market_prices) and `priceHistoryRepository.append` (price_history) — the two DB
 writes throttled to 1/sec/symbol. Candlesticks are aggregated on-read from
 price_history by `priceHistoryRepository.aggregateCandles` (OHLC per time bucket).
+
+## Limit orders (Step 7)
+`POST /api/orders` with `orderType:'LIMIT'` + `targetPrice` rests an order as PENDING
+(no funds reserved). `order.service.js settleFill()` is the shared fill core used by
+both MARKET and LIMIT paths (wallet FOR UPDATE + funds/holdings check + position/wallet
+update). The matcher `processLimitOrdersForSymbol({symbol,price})` runs from the
+ingestion pipeline on each throttled price update (`ingestionWorker` `onPriceUpdate`
+hook, per-symbol in-flight guard, wired in `runtime.js`); it fills crossed orders via
+`fillLimitOrder(orderId)` at `target_price` (BUY when price≤target, SELL when ≥),
+locking the order row + rechecking status for idempotency, and marks REJECTED on a
+funds/holdings shortfall. `DELETE /api/orders/:id?userId=` cancels a PENDING order.
 
 ## Frontend market view (Step 6b)
 `paper-trading-ui` Market page (`pages/Market.jsx`) is the live trading view.
