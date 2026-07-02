@@ -11,6 +11,10 @@ function TradePanel({ symbol, price }) {
   const [busy, setBusy] = useState(false);
 
   async function submit(side) {
+    if (!(Number(quantity) > 0)) {
+      setStatus({ ok: false, message: "Quantity must be greater than 0." });
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {

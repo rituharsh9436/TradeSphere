@@ -29,7 +29,9 @@ function CandlestickChart({ candles, seriesKey }) {
     seriesRef.current = series;
     prevKeyRef.current = null; // force a setData on the first data effect
 
-    const onResize = () => chart.applyOptions({ width: containerRef.current.clientWidth });
+    const onResize = () => {
+      if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
+    };
     window.addEventListener("resize", onResize);
 
     return () => {
