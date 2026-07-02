@@ -271,6 +271,20 @@ const orderService = {
     return { filled, rejected };
   },
 
+  // Cancels a still-PENDING order. Locks the row and verifies ownership + status
+  // before flipping to CANCELLED, so it can't race a concurrent fill.
+  async cancelOrder({ orderId, userId }) {
+    if (!userId) throw new AppError('userId query parameter is required.', 400);
+    return withTransaction(async (client) => {
+      const order = await orderRepository.findByIdForUpdate(orderId, client);
+      if (!order || order.user_id !== userId) throw new AppError('Order not found.', 404);
+      if (order.status !== 'PENDING') {
+        throw new AppError('Only pending orders can be cancelled.', 409);
+      }
+      return orderRepository.updateStatus(orderId, 'CANCELLED', client);
+    });
+  },
+
   async listOrders(userId) {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError('User not found.', 404);
