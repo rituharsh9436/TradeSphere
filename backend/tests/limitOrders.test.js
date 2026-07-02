@@ -223,3 +223,33 @@ test('matcher: idempotent — running twice fills a crossed order once', async (
 
   await setPrice('AAPL', '195.0000');
 });
+
+test('DELETE /api/orders/:id cancels a PENDING order', async () => {
+  const userId = await registerUser();
+  const placed = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'BUY', quantity: 1, orderType: 'LIMIT', targetPrice: 150,
+  });
+  const orderId = placed.body.data.order.id;
+
+  const cancel = await apiJson('DELETE', `/api/orders/${orderId}?userId=${userId}`);
+  assert.equal(cancel.status, 200, JSON.stringify(cancel.body));
+  assert.equal(cancel.body.data.status, 'CANCELLED');
+  assert.equal((await orderRepository.findByIdForUpdate(orderId)).status, 'CANCELLED');
+
+  // Cancelling again -> 409 (not pending).
+  assert.equal((await apiJson('DELETE', `/api/orders/${orderId}?userId=${userId}`)).status, 409);
+});
+
+test('DELETE /api/orders/:id — wrong user 404, missing userId 400', async () => {
+  const owner = await registerUser();
+  const other = await registerUser();
+  const placed = await apiJson('POST', '/api/orders', {
+    userId: owner, symbol: 'AAPL', side: 'BUY', quantity: 1, orderType: 'LIMIT', targetPrice: 150,
+  });
+  const orderId = placed.body.data.order.id;
+
+  assert.equal((await apiJson('DELETE', `/api/orders/${orderId}?userId=${other}`)).status, 404);
+  assert.equal((await apiJson('DELETE', `/api/orders/${orderId}`)).status, 400); // no userId
+  // Still cancellable by the owner afterwards.
+  assert.equal((await apiJson('DELETE', `/api/orders/${orderId}?userId=${owner}`)).status, 200);
+});

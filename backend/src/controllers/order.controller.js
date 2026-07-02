@@ -18,6 +18,15 @@ const orderController = {
     res.status(201).json({ status: 'success', data });
   }),
 
+  // DELETE /api/orders/:id?userId=...  — cancel a pending order.
+  cancel: catchAsync(async (req, res) => {
+    const order = await orderService.cancelOrder({
+      orderId: req.params.id,
+      userId: req.query.userId,
+    });
+    res.status(200).json({ status: 'success', data: order });
+  }),
+
   // GET /api/orders/user/:userId
   listForUser: catchAsync(async (req, res) => {
     const orders = await orderService.listOrders(req.params.userId);
