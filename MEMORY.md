@@ -29,6 +29,7 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/market/prices` | market.routes.js | `marketController.getPrices` | `marketService.getPrices` |
 | `GET /api/market/prices/:symbol` | market.routes.js | `marketController.getPrice` | `marketService.getPriceBySymbol` |
 | `GET /api/market/candles` | market.routes.js | `marketController.getCandles` | `marketService.getCandles` |
+| `GET /api/users` | user.routes.js | `userController.list` | `userService.list` |
 
 `routes/index.js` mounts `/users`, `/orders` and `/market`. Every controller method is wrapped
 in `utils/catchAsync.js` so rejected promises forward to the central error handler.
@@ -69,6 +70,16 @@ random walk. `ingestionWorker` fans each `{symbol,price,ts}` tick to: WS broadca
 (market_prices) and `priceHistoryRepository.append` (price_history) — the two DB
 writes throttled to 1/sec/symbol. Candlesticks are aggregated on-read from
 price_history by `priceHistoryRepository.aggregateCandles` (OHLC per time bucket).
+
+## Frontend market view (Step 6b)
+`paper-trading-ui` Market page (`pages/Market.jsx`) is the live trading view.
+`hooks/useMarketData.js` opens one `services/marketSocket.js` WebSocket to
+`ws://localhost:5000/ws/market`, keeping a latest-price map (PriceList) and fanning
+raw ticks out. The selected symbol's candle is built client-side by pure helpers in
+`lib/candles.js` (`applyTickToCandles`/`bucketStart`), seeded from `/api/market/candles`
+and drawn by `components/CandlestickChart.jsx` (lightweight-charts v5). Trading uses a
+dev "active user" in `context/ActiveUserContext.jsx` (localStorage, set via Navbar
+`UserPicker`, backed by `GET /api/users`), posting to `POST /api/orders`.
 
 ## Error handling
 Any layer throws `utils/AppError.js` (statusCode, isOperational) → caught by
