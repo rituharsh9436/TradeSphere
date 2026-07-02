@@ -201,6 +201,76 @@ const orderService = {
     });
   },
 
+  // Fills one PENDING limit order in its own transaction. Locks the order row and
+  // re-checks it is still PENDING and still crossed at the current market price
+  // (guards against a concurrent fill/cancel), then settles at target_price.
+  // Returns FILLED, REJECTED (shortfall) or SKIPPED (no longer eligible).
+  async fillLimitOrder(orderId) {
+    return withTransaction(async (client) => {
+      const order = await orderRepository.findByIdForUpdate(orderId, client);
+      if (!order || order.status !== 'PENDING' || order.order_type !== 'LIMIT') return 'SKIPPED';
+
+      const priceRaw = await assetRepository.getPrice(order.asset_id, client);
+      if (priceRaw === null) return 'SKIPPED';
+      const price = new Decimal(priceRaw);
+      const target = new Decimal(order.target_price);
+      const crossed = order.side === 'BUY' ? price.lte(target) : price.gte(target);
+      if (!crossed) return 'SKIPPED';
+
+      const qty = new Decimal(order.quantity);
+      const result = await settleFill(client, {
+        userId: order.user_id, assetId: order.asset_id, side: order.side, qty, price: target,
+      });
+      if (!result.ok) {
+        await orderRepository.updateStatus(orderId, 'REJECTED', client);
+        return 'REJECTED';
+      }
+
+      await orderRepository.updateStatus(orderId, 'FILLED', client);
+      await transactionRepository.create(
+        {
+          userId: order.user_id,
+          orderId,
+          transactionType: order.side,
+          amount: money(target.times(qty)),
+          pricePerShare: money(target),
+        },
+        client
+      );
+      return 'FILLED';
+    });
+  },
+
+  // Matcher entry point, called from the ingestion pipeline on each throttled
+  // price update. Loads the symbol's PENDING limits, fills those crossed at
+  // `price`. Pipeline-safe: never throws; per-order failures are logged.
+  async processLimitOrdersForSymbol({ symbol, price }) {
+    let filled = 0;
+    let rejected = 0;
+    try {
+      const asset = await assetRepository.findBySymbol(symbol);
+      if (!asset || !asset.is_active) return { filled, rejected };
+      const p = new Decimal(price);
+
+      const pending = await orderRepository.findPendingLimitByAsset(asset.id);
+      for (const o of pending) {
+        const target = new Decimal(o.target_price);
+        const crossed = o.side === 'BUY' ? p.lte(target) : p.gte(target);
+        if (!crossed) continue;
+        try {
+          const outcome = await orderService.fillLimitOrder(o.id);
+          if (outcome === 'FILLED') filled += 1;
+          else if (outcome === 'REJECTED') rejected += 1;
+        } catch (err) {
+          console.error(`Limit fill failed for order ${o.id}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.error(`Limit matcher failed for ${symbol}:`, err.message);
+    }
+    return { filled, rejected };
+  },
+
   async listOrders(userId) {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError('User not found.', 404);

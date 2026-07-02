@@ -101,3 +101,125 @@ test('POST /api/orders LIMIT: validation errors', async () => {
   assert.equal((await bad({ side: 'BUY', quantity: 0, orderType: 'LIMIT', targetPrice: 10 })).status, 400);
   assert.equal((await bad({ side: 'BUY', quantity: 1, orderType: 'FOO', targetPrice: 10 })).status, 400);
 });
+
+const orderService = require('../src/services/order.service');
+
+// Set the shared market price for a symbol, run the matcher, then the caller
+// restores the seed. getPrice (used inside fillLimitOrder) reads this row.
+async function setPrice(symbol, price) {
+  const id = await assetIdOf(symbol);
+  await marketPriceRepository.upsertLatest(id, price);
+}
+
+async function walletBalance(userId) {
+  const r = await apiJson('GET', `/api/users/${userId}/wallet`);
+  return r.body.data.balance;
+}
+
+// The matcher fills ALL pending limits for a symbol, so aggregate {filled,rejected}
+// counts depend on global state. Neutralize other tests' leftover AAPL limits so
+// each matcher test's counts reflect only the orders it created (order-independent).
+async function clearPendingLimits(symbol) {
+  const id = await assetIdOf(symbol);
+  await pool.query(
+    `UPDATE orders SET status = 'CANCELLED'
+     WHERE asset_id = $1 AND order_type = 'LIMIT' AND status = 'PENDING'`,
+    [id]
+  );
+}
+
+test('matcher: BUY limit fills at target when price crosses down', async () => {
+  const userId = await registerUser();
+  await clearPendingLimits('AAPL');
+  const start = await walletBalance(userId);
+
+  const placed = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'BUY', quantity: 2, orderType: 'LIMIT', targetPrice: 190,
+  });
+  const orderId = placed.body.data.order.id;
+
+  await setPrice('AAPL', '189.0000'); // 189 <= 190 -> crosses
+  const res = await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '189.0000' });
+  assert.deepEqual(res, { filled: 1, rejected: 0 });
+
+  const locked = await orderRepository.findByIdForUpdate(orderId);
+  assert.equal(locked.status, 'FILLED');
+  // Filled at target 190, qty 2 -> debit 380.
+  const expected = (Number(start) - 380).toFixed(4);
+  assert.equal(await walletBalance(userId), expected);
+
+  await setPrice('AAPL', '195.0000'); // restore seed
+});
+
+test('matcher: SELL limit fills at target when price crosses up; not-crossed stays PENDING', async () => {
+  const userId = await registerUser();
+  await clearPendingLimits('AAPL');
+  // Give the user shares: BUY 5 AAPL at market (195).
+  await apiJson('POST', '/api/orders', { userId, symbol: 'AAPL', side: 'BUY', quantity: 5 });
+
+  const placed = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'SELL', quantity: 5, orderType: 'LIMIT', targetPrice: 210,
+  });
+  const orderId = placed.body.data.order.id;
+
+  // Price below target -> no cross.
+  await setPrice('AAPL', '200.0000');
+  assert.deepEqual(
+    await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '200.0000' }),
+    { filled: 0, rejected: 0 }
+  );
+  assert.equal((await orderRepository.findByIdForUpdate(orderId)).status, 'PENDING');
+
+  // Price at/above target -> fills.
+  await setPrice('AAPL', '210.0000');
+  assert.deepEqual(
+    await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '210.0000' }),
+    { filled: 1, rejected: 0 }
+  );
+  assert.equal((await orderRepository.findByIdForUpdate(orderId)).status, 'FILLED');
+
+  await setPrice('AAPL', '195.0000');
+});
+
+test('matcher: insufficient funds at fill -> REJECTED, wallet unchanged', async () => {
+  const userId = await registerUser();
+  await clearPendingLimits('AAPL');
+  const start = await walletBalance(userId); // 100000
+
+  // Target 190, qty 1000 -> needs 190000 > 100000 at fill.
+  const placed = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'BUY', quantity: 1000, orderType: 'LIMIT', targetPrice: 190,
+  });
+  const orderId = placed.body.data.order.id;
+
+  await setPrice('AAPL', '189.0000');
+  const res = await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '189.0000' });
+  assert.deepEqual(res, { filled: 0, rejected: 1 });
+  assert.equal((await orderRepository.findByIdForUpdate(orderId)).status, 'REJECTED');
+  assert.equal(await walletBalance(userId), start, 'wallet unchanged on reject');
+
+  await setPrice('AAPL', '195.0000');
+});
+
+test('matcher: idempotent — running twice fills a crossed order once', async () => {
+  const userId = await registerUser();
+  await clearPendingLimits('AAPL');
+  const start = await walletBalance(userId);
+
+  const placed = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'BUY', quantity: 1, orderType: 'LIMIT', targetPrice: 190,
+  });
+  const orderId = placed.body.data.order.id;
+
+  await setPrice('AAPL', '189.0000');
+  const first = await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '189.0000' });
+  const second = await orderService.processLimitOrdersForSymbol({ symbol: 'AAPL', price: '189.0000' });
+  assert.deepEqual(first, { filled: 1, rejected: 0 });
+  assert.deepEqual(second, { filled: 0, rejected: 0 }); // already FILLED -> not re-listed
+
+  assert.equal((await orderRepository.findByIdForUpdate(orderId)).status, 'FILLED');
+  const expected = (Number(start) - 190).toFixed(4); // debited once
+  assert.equal(await walletBalance(userId), expected);
+
+  await setPrice('AAPL', '195.0000');
+});
