@@ -4,6 +4,7 @@ const createFinnhubTickSourceDefault = require('./finnhubTickSource');
 const createIngestionWorkerDefault = require('./ingestionWorker');
 const marketPriceRepositoryDefault = require('../repositories/marketPrice.repository');
 const priceHistoryRepositoryDefault = require('../repositories/priceHistory.repository');
+const orderServiceDefault = require('../services/order.service');
 
 function buildAssetIdBySymbol(assets) {
   return new Map(assets.map((a) => [a.symbol, a.id]));
@@ -29,6 +30,7 @@ function createMarketRuntime({
     priceHistoryRepository = priceHistoryRepositoryDefault,
     intervalMs = Number(process.env.MARKET_TICK_INTERVAL_MS) || 2000,
     throttleMs = Number(process.env.MARKET_HISTORY_THROTTLE_MS) || 1000,
+    processLimitOrdersForSymbol = orderServiceDefault.processLimitOrdersForSymbol,
   } = deps;
 
   const symbols = assets.map((a) => a.symbol);
@@ -51,6 +53,7 @@ function createMarketRuntime({
     marketSocket,
     assetIdBySymbol: buildAssetIdBySymbol(assets),
     throttleMs,
+    onPriceUpdate: ({ symbol, price }) => processLimitOrdersForSymbol({ symbol, price }),
   });
 
   return {

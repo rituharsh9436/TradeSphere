@@ -11,8 +11,10 @@ function createIngestionWorker({
   assetIdBySymbol,
   throttleMs = 1000,
   now = () => Date.now(),
+  onPriceUpdate = null,
 }) {
   const lastWriteAt = new Map(); // symbol -> ms timestamp of last DB write
+  const matching = new Set(); // symbols with an in-flight matcher run
 
   async function persist(assetId, tick) {
     try {
@@ -27,6 +29,25 @@ function createIngestionWorker({
     }
   }
 
+  // Run the limit-order matcher for this symbol, at most one run per symbol at a
+  // time (a busy feed shouldn't stack matcher runs). Errors never break the stream.
+  function runMatcher(symbol, price) {
+    if (!onPriceUpdate || matching.has(symbol)) return;
+    matching.add(symbol);
+    let result;
+    try {
+      result = onPriceUpdate({ symbol, price });
+    } catch (err) {
+      console.error('Limit matcher hook failed:', err.message);
+      matching.delete(symbol);
+      return;
+    }
+    // Clear the in-flight flag only once the matcher's async work settles.
+    Promise.resolve(result)
+      .catch((err) => console.error('Limit matcher hook failed:', err.message))
+      .finally(() => matching.delete(symbol));
+  }
+
   function handleTick(tick) {
     marketSocket.broadcast({ type: 'tick', symbol: tick.symbol, price: tick.price, ts: tick.ts });
 
@@ -38,6 +59,7 @@ function createIngestionWorker({
     if (last !== undefined && t - last < throttleMs) return; // throttled
     lastWriteAt.set(tick.symbol, t);
     void persist(assetId, tick);
+    runMatcher(tick.symbol, tick.price);
   }
 
   return {
