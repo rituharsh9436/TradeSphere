@@ -13,6 +13,59 @@ const transactionRepository = require('../repositories/transaction.repository');
 const SCALE = 4;
 const money = (value) => new Decimal(value).toFixed(SCALE);
 
+// Shared fill core for MARKET and LIMIT orders. Locks the wallet (the per-user
+// serialization point) and position FOR UPDATE, then applies the balance/holdings
+// check and the position + wallet mutations. Returns { ok:false, reason } for a
+// business shortfall (caller decides: MARKET throws 422, LIMIT marks REJECTED) and
+// throws only on true errors (missing wallet). Does not touch the order/ledger.
+async function settleFill(client, { userId, assetId, side, qty, price }) {
+  const grossAmount = new Decimal(price).times(qty);
+
+  const wallet = await walletRepository.findByUserIdForUpdate(userId, client);
+  if (!wallet) throw new AppError('Wallet not found for this user.', 404);
+  const balance = new Decimal(wallet.balance);
+  const position = await positionRepository.findForUpdate(userId, assetId, client);
+
+  let newBalance;
+  if (side === 'BUY') {
+    if (balance.lt(grossAmount)) return { ok: false, reason: 'INSUFFICIENT_FUNDS' };
+    newBalance = balance.minus(grossAmount);
+    if (position) {
+      const oldQty = new Decimal(position.quantity);
+      const oldCost = oldQty.times(position.average_buy_price);
+      const newQty = oldQty.plus(qty);
+      const newAvg = oldCost.plus(grossAmount).div(newQty);
+      await positionRepository.update(
+        { userId, assetId, quantity: money(newQty), averageBuyPrice: money(newAvg) },
+        client
+      );
+    } else {
+      await positionRepository.create(
+        { userId, assetId, quantity: money(qty), averageBuyPrice: money(price) },
+        client
+      );
+    }
+  } else {
+    if (!position || new Decimal(position.quantity).lt(qty)) {
+      return { ok: false, reason: 'INSUFFICIENT_HOLDINGS' };
+    }
+    newBalance = balance.plus(grossAmount);
+    const remainingQty = new Decimal(position.quantity).minus(qty);
+    await positionRepository.update(
+      {
+        userId,
+        assetId,
+        quantity: money(remainingQty),
+        averageBuyPrice: money(position.average_buy_price),
+      },
+      client
+    );
+  }
+
+  const updatedWallet = await walletRepository.updateBalance(userId, money(newBalance), client);
+  return { ok: true, wallet: updatedWallet, newBalance: money(newBalance) };
+}
+
 const orderService = {
   // Executes a MARKET order immediately at the current market price. The entire
   // operation runs in one transaction with the wallet row locked FOR UPDATE, so
@@ -48,58 +101,18 @@ const orderService = {
       const price = new Decimal(priceRaw);
       const grossAmount = price.times(qty); // total cash value of the trade
 
-      // Lock the wallet row — the serialization point for all of this user's trades.
-      const wallet = await walletRepository.findByUserIdForUpdate(userId, client);
-      if (!wallet) throw new AppError('Wallet not found for this user.', 404);
-      const balance = new Decimal(wallet.balance);
-
-      let newBalance;
-      let position = await positionRepository.findForUpdate(userId, asset.id, client);
-
-      if (normalizedSide === 'BUY') {
-        if (balance.lt(grossAmount)) {
-          throw new AppError('Insufficient funds for this order.', 422);
-        }
-        newBalance = balance.minus(grossAmount);
-
-        // Update holding with a new quantity-weighted average buy price.
-        if (position) {
-          const oldQty = new Decimal(position.quantity);
-          const oldCost = oldQty.times(position.average_buy_price);
-          const newQty = oldQty.plus(qty);
-          const newAvg = oldCost.plus(grossAmount).div(newQty);
-          await positionRepository.update(
-            { userId, assetId: asset.id, quantity: money(newQty), averageBuyPrice: money(newAvg) },
-            client
-          );
-        } else {
-          await positionRepository.create(
-            { userId, assetId: asset.id, quantity: money(qty), averageBuyPrice: money(price) },
-            client
-          );
-        }
-      } else {
-        // SELL
-        if (!position || new Decimal(position.quantity).lt(qty)) {
-          throw new AppError('Insufficient asset holdings for this order.', 422);
-        }
-        newBalance = balance.plus(grossAmount);
-
-        const remainingQty = new Decimal(position.quantity).minus(qty);
-        // Average buy price is unchanged on a sell; quantity simply decreases.
-        await positionRepository.update(
-          {
-            userId,
-            assetId: asset.id,
-            quantity: money(remainingQty),
-            averageBuyPrice: money(position.average_buy_price),
-          },
-          client
+      // Wallet lock + funds/holdings check + position/wallet mutations happen here.
+      const result = await settleFill(client, {
+        userId, assetId: asset.id, side: normalizedSide, qty, price,
+      });
+      if (!result.ok) {
+        throw new AppError(
+          result.reason === 'INSUFFICIENT_FUNDS'
+            ? 'Insufficient funds for this order.'
+            : 'Insufficient asset holdings for this order.',
+          422
         );
       }
-
-      // Persist the new wallet balance.
-      const updatedWallet = await walletRepository.updateBalance(userId, money(newBalance), client);
 
       // Record the order as FILLED, then write the immutable ledger entry.
       const order = await orderRepository.create(
@@ -129,7 +142,7 @@ const orderService = {
       return {
         order,
         transaction,
-        wallet: updatedWallet,
+        wallet: result.wallet,
         executedPrice: money(price),
         totalAmount: money(grossAmount),
       };
