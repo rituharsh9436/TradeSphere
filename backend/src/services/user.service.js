@@ -31,6 +31,10 @@ const userService = {
     }
     return user;
   },
+
+  async list() {
+    return userRepository.findAll();
+  },
 };
 
 module.exports = userService;

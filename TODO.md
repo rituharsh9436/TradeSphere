@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-01 (Step 6a complete)_
+_Last updated: 2026-07-02 (Step 6b complete)_
 
 ---
 
@@ -62,9 +62,10 @@ _Last updated: 2026-07-01 (Step 6a complete)_
 - [x] Browser-facing WebSocket (`/ws/market`) pushing live ticks
 - [x] `GET /api/market/prices`, `/prices/:symbol`, `/candles` (on-read OHLC)
 - [x] Server lifecycle wiring + graceful shutdown; `.env.example`
-### ⬜ Step 6b — Frontend live candlestick chart
-- [ ] Candlestick chart (e.g. TradingView lightweight-charts) consuming `/candles` + WS
-- [ ] Timeframe switcher; live-forming candle from the WS tick stream
+### ✅ Step 6b — Frontend live candlestick chart
+- [x] Candlestick chart (lightweight-charts) consuming `/candles` + WS
+- [x] Timeframe switcher (15s/1m/5m/1h); live-forming candle from the WS tick stream
+- [x] Rebuilt Market page: live price list + chart + Buy/Sell (dev active user)
 
 ## ⬜ Step 7 — Limit orders
 - [ ] Accept LIMIT orders (status `PENDING`, store `target_price`)

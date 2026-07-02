@@ -12,6 +12,11 @@ const userController = {
     res.status(201).json({ status: 'success', data: user });
   }),
 
+  list: catchAsync(async (req, res) => {
+    const users = await userService.list();
+    res.status(200).json({ status: 'success', results: users.length, data: users });
+  }),
+
   getById: catchAsync(async (req, res) => {
     const user = await userService.getById(req.params.id);
     res.status(200).json({ status: 'success', data: user });
