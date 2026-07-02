@@ -149,6 +149,58 @@ const orderService = {
     });
   },
 
+  // Places a resting LIMIT order (status PENDING). No reservation: the wallet and
+  // positions are untouched until the matcher fills it. Validation mirrors MARKET
+  // plus a required, positive targetPrice.
+  async placeLimitOrder({ userId, symbol, side, quantity, targetPrice }) {
+    if (!userId || !symbol || !side || quantity === undefined) {
+      throw new AppError('userId, symbol, side and quantity are required.', 400);
+    }
+    const normalizedSide = String(side).toUpperCase();
+    if (!['BUY', 'SELL'].includes(normalizedSide)) {
+      throw new AppError('side must be BUY or SELL.', 400);
+    }
+    let qty;
+    try {
+      qty = new Decimal(quantity);
+    } catch (e) {
+      throw new AppError('quantity must be a number.', 400);
+    }
+    if (qty.lte(0)) throw new AppError('quantity must be greater than zero.', 400);
+
+    if (targetPrice === undefined || targetPrice === null || targetPrice === '') {
+      throw new AppError('targetPrice is required for a LIMIT order.', 400);
+    }
+    let target;
+    try {
+      target = new Decimal(targetPrice);
+    } catch (e) {
+      throw new AppError('targetPrice must be a number.', 400);
+    }
+    if (target.lte(0)) throw new AppError('targetPrice must be greater than zero.', 400);
+
+    return withTransaction(async (client) => {
+      const user = await userRepository.findById(userId, client);
+      if (!user) throw new AppError('User not found.', 404);
+
+      const asset = await assetRepository.findBySymbol(symbol, client);
+      if (!asset || !asset.is_active) throw new AppError('Asset not found or inactive.', 404);
+
+      return orderRepository.create(
+        {
+          userId,
+          assetId: asset.id,
+          orderType: 'LIMIT',
+          side: normalizedSide,
+          quantity: money(qty),
+          targetPrice: money(target),
+          status: 'PENDING',
+        },
+        client
+      );
+    });
+  },
+
   async listOrders(userId) {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError('User not found.', 404);
