@@ -71,3 +71,33 @@ test('order.repository: findPendingLimitByAsset + findByIdForUpdate', async () =
 
   assert.equal(await orderRepository.findByIdForUpdate('00000000-0000-0000-0000-000000000000'), null);
 });
+
+test('POST /api/orders LIMIT: creates PENDING with no wallet change', async () => {
+  const userId = await registerUser();
+
+  const before = await apiJson('GET', `/api/users/${userId}/wallet`);
+  const startBalance = before.body.data.balance;
+
+  const r = await apiJson('POST', '/api/orders', {
+    userId, symbol: 'AAPL', side: 'BUY', quantity: 2, orderType: 'LIMIT', targetPrice: 150,
+  });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.data.order.order_type, 'LIMIT');
+  assert.equal(r.body.data.order.status, 'PENDING');
+  assert.equal(r.body.data.order.target_price, '150.0000');
+
+  const afterW = await apiJson('GET', `/api/users/${userId}/wallet`);
+  assert.equal(afterW.body.data.balance, startBalance, 'wallet unchanged at placement');
+});
+
+test('POST /api/orders LIMIT: validation errors', async () => {
+  const userId = await registerUser();
+  const bad = (body) => apiJson('POST', '/api/orders', { userId, symbol: 'AAPL', ...body });
+
+  assert.equal((await bad({ side: 'BUY', quantity: 1, orderType: 'LIMIT' })).status, 400); // no target
+  assert.equal((await bad({ side: 'BUY', quantity: 1, orderType: 'LIMIT', targetPrice: 0 })).status, 400);
+  assert.equal((await bad({ side: 'BUY', quantity: 1, orderType: 'LIMIT', targetPrice: -5 })).status, 400);
+  assert.equal((await bad({ side: 'HOLD', quantity: 1, orderType: 'LIMIT', targetPrice: 10 })).status, 400);
+  assert.equal((await bad({ side: 'BUY', quantity: 0, orderType: 'LIMIT', targetPrice: 10 })).status, 400);
+  assert.equal((await bad({ side: 'BUY', quantity: 1, orderType: 'FOO', targetPrice: 10 })).status, 400);
+});
