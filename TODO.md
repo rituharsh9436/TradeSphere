@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-02 (Step 7 complete)_
+_Last updated: 2026-07-02 (Step 8 complete)_
 
 ---
 
@@ -73,10 +73,11 @@ _Last updated: 2026-07-02 (Step 7 complete)_
 - [x] `DELETE /api/orders/:id` — cancel a pending order
 - [x] Tests: fill-on-cross, reject, idempotency, cancel, validation
 
-## ⬜ Step 8 — Leaderboard & ranking
-- [ ] `GET /api/leaderboard` ranked by ROI / portfolio value
-- [ ] Efficient aggregation query (indexed)
-- [ ] Tests
+## ✅ Step 8 — Leaderboard & ranking
+- [x] `GET /api/leaderboard?limit=` ranked by total equity (= ROI order; $100k start)
+- [x] Single aggregation query (users ⋈ wallets ⋈ positions ⋈ market_prices), indexed joins
+- [x] Entries: rank, userId, username, totalEquity, roiPct, hasUnpricedHoldings
+- [x] Tests: ordering, ROI, unpriced flag, limit cap, validation
 
 ## ⬜ Step 9 — Reset / restart ("panic button")
 - [ ] `POST /api/users/:id/reset` — liquidate positions, cancel pending orders,

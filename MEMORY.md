@@ -31,8 +31,9 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/market/prices/:symbol` | market.routes.js | `marketController.getPrice` | `marketService.getPriceBySymbol` |
 | `GET /api/market/candles` | market.routes.js | `marketController.getCandles` | `marketService.getCandles` |
 | `GET /api/users` | user.routes.js | `userController.list` | `userService.list` |
+| `GET /api/leaderboard` | leaderboard.routes.js | `leaderboardController.getLeaderboard` | `leaderboardService.getLeaderboard` |
 
-`routes/index.js` mounts `/users`, `/orders` and `/market`. Every controller method is wrapped
+`routes/index.js` mounts `/users`, `/orders`, `/market` and `/leaderboard`. Every controller method is wrapped
 in `utils/catchAsync.js` so rejected promises forward to the central error handler.
 
 ## Core write path — place market order
@@ -82,6 +83,15 @@ hook, per-symbol in-flight guard, wired in `runtime.js`); it fills crossed order
 `fillLimitOrder(orderId)` at `target_price` (BUY when price≤target, SELL when ≥),
 locking the order row + rechecking status for idempotency, and marks REJECTED on a
 funds/holdings shortfall. `DELETE /api/orders/:id?userId=` cancels a PENDING order.
+
+## Leaderboard (Step 8)
+`GET /api/leaderboard?limit=` (default 50, cap 200) ranks all users by total equity
+via one aggregation query in `leaderboard.repository.findRankedByEquity`
+(users ⋈ wallets ⋈ positions ⋈ market_prices; unpriced holdings excluded from the
+SUM, flagged by `has_unpriced`; ordered equity DESC, then created_at/id).
+`leaderboard.service.getLeaderboard` validates `limit`, then derives `totalEquity` and
+`roiPct` (vs the $100k start) at 4 dp and assigns 1-based `rank`. Equity order equals
+ROI order because every account starts at $100k with no deposits.
 
 ## Frontend market view (Step 6b)
 `paper-trading-ui` Market page (`pages/Market.jsx`) is the live trading view.
