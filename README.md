@@ -230,7 +230,9 @@ Money, prices and quantities are returned as **strings at 4 decimals**
 
 Base URL `http://localhost:5000`, all REST routes under `/api`, WebSocket at
 `ws://localhost:5000/ws/market`. Every REST response is a `{ status, data, … }`
-envelope. **Full reference: [`docs/api.md`](./docs/api.md).**
+envelope. **Full reference: [`docs/api.md`](./docs/api.md)** (prose) and
+[`docs/openapi.json`](./docs/openapi.json) (OpenAPI 3.1, also served live at
+`GET /api/openapi.json`).
 
 | Area | Endpoints |
 | :--- | :--- |

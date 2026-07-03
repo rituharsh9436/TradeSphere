@@ -1,3 +1,4 @@
+const path = require('node:path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,6 +7,15 @@ const apiRoutes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimit');
 const requestLogger = require('./middleware/requestLogger');
+
+// OpenAPI spec, loaded once. Optional: if the file is absent (e.g. a trimmed
+// deploy that ships only backend/), the endpoint 404s instead of crashing.
+let openApiSpec = null;
+try {
+  openApiSpec = require(path.join(__dirname, '../../docs/openapi.json'));
+} catch {
+  openApiSpec = null;
+}
 
 const app = express();
 
@@ -20,6 +30,14 @@ app.use(express.json()); // Parses incoming JSON requests
 // Health check route (no rate limit — used by liveness probes)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'UP', message: 'Trading engine is running.' });
+});
+
+// Machine-readable API contract (OpenAPI 3.1). Served raw (no Swagger-UI dep).
+app.get('/api/openapi.json', (req, res) => {
+  if (!openApiSpec) {
+    return res.status(404).json({ status: 'fail', message: 'OpenAPI spec not available.' });
+  }
+  return res.status(200).json(openApiSpec);
 });
 
 // API routes (rate-limited in production; inert in dev/test)
