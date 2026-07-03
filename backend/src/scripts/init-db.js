@@ -8,8 +8,14 @@ const createTables = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Auth (Step 10): password_hash is nullable so legacy dev users (created via
+    -- POST /api/users without a password) remain valid; only /api/auth/register
+    -- populates it. Idempotent ALTER upgrades pre-existing databases in place.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
 
     -- 2. Wallets Table
     CREATE TABLE IF NOT EXISTS wallets (

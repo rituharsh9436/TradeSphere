@@ -4,12 +4,12 @@ const pool = require('../config/database');
 // callers can enlist the query in an existing transaction; it defaults to the
 // pool for standalone use.
 const userRepository = {
-  async create({ username, email }, client = pool) {
+  async create({ username, email, passwordHash = null }, client = pool) {
     const { rows } = await client.query(
-      `INSERT INTO users (username, email)
-       VALUES ($1, $2)
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3)
        RETURNING id, username, email, created_at`,
-      [username, email]
+      [username, email, passwordHash]
     );
     return rows[0];
   },
@@ -25,6 +25,15 @@ const userRepository = {
   async findByEmail(email, client = pool) {
     const { rows } = await client.query(
       `SELECT id, username, email, created_at FROM users WHERE email = $1`,
+      [email]
+    );
+    return rows[0] || null;
+  },
+
+  // Auth-only lookup: the single method that returns password_hash (for login).
+  async findAuthByEmail(email, client = pool) {
+    const { rows } = await client.query(
+      `SELECT id, username, email, password_hash FROM users WHERE email = $1`,
       [email]
     );
     return rows[0] || null;

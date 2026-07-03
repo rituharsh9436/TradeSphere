@@ -4,22 +4,27 @@ import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
-import { ActiveUserProvider } from "./context/ActiveUserContext";
+import RequireAuth from "./components/RequireAuth";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
-    <ActiveUserProvider>
+    <AuthProvider>
       <BrowserRouter>
         <Navbar />
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/market" element={<Market />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/market" element={<RequireAuth><Market /></RequireAuth>} />
+          <Route path="/leaderboard" element={<RequireAuth><Leaderboard /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
         </Routes>
       </BrowserRouter>
-    </ActiveUserProvider>
+    </AuthProvider>
   );
 }
 

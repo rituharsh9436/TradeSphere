@@ -15,17 +15,9 @@ export async function getCandles({ symbol, interval, from, to }) {
   return res.data.data; // { symbol, intervalSec, candles }
 }
 
-export async function getUsers() {
-  const res = await api.get("/users");
-  return res.data.data;
-}
-
-export async function registerUser({ username, email }) {
-  const res = await api.post("/users", { username, email });
-  return res.data.data;
-}
-
-export async function placeOrder({ userId, symbol, side, quantity }) {
-  const res = await api.post("/orders", { userId, symbol, side, quantity });
+// Trade as the authenticated user — the backend reads the user from the bearer
+// token (attached by the axios interceptor), so no userId is sent.
+export async function placeOrder({ symbol, side, quantity }) {
+  const res = await api.post("/me/orders", { symbol, side, quantity });
   return res.data.data;
 }
