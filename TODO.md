@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-02 (Step 8 complete)_
+_Last updated: 2026-07-03 (Step 9 complete)_
 
 ---
 
@@ -79,11 +79,12 @@ _Last updated: 2026-07-02 (Step 8 complete)_
 - [x] Entries: rank, userId, username, totalEquity, roiPct, hasUnpricedHoldings
 - [x] Tests: ordering, ROI, unpriced flag, limit cap, validation
 
-## ⬜ Step 9 — Reset / restart ("panic button")
-- [ ] `POST /api/users/:id/reset` — liquidate positions, cancel pending orders,
-      restore wallet to starting balance
-- [ ] Record as `RESET` ledger entries (preserve audit trail)
-- [ ] Tests for full-reset invariants
+## ✅ Step 9 — Reset / restart ("panic button")
+- [x] `POST /api/users/:id/reset` — liquidate positions, cancel pending orders, restore wallet to $100,000
+- [x] Atomic (one transaction, wallet locked FOR UPDATE); serializes against order fills
+- [x] Append-only audit trail: one `RESET` ledger row per position (valued at market, fallback avg buy price)
+- [x] Idempotent / no-op safe on a clean account
+- [x] Tests: full-reset invariants, unpriced fallback, no-op, ledger preservation, 404
 
 ## ⬜ Step 10 — Authentication & accounts
 - [ ] Decide strategy (JWT vs. session)
