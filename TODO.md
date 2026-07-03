@@ -100,7 +100,7 @@ _Last updated: 2026-07-03 (Step 10 complete)_
 - [ ] Lock down / remove legacy unauthenticated `/api/users/*` + `/api/orders` (superseded by `/api/me/*`)
 - [ ] Input validation layer (e.g. schema validation middleware)
 - [ ] Request logging & structured error logging
-- [ ] `.env.example` committed; document required env vars
+- [x] `.env.example` committed; document required env vars
 - [ ] `docs/architecture.md` (data-flow + layer responsibilities)
 - [ ] CI workflow to run `npm test` on push
 - [ ] Rate limiting / basic security headers
