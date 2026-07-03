@@ -5,8 +5,12 @@ const helmet = require('helmet');
 const apiRoutes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimit');
+const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
+
+// Observability first, so every request (including 4xx/5xx) is logged.
+app.use(requestLogger);
 
 // Security & parsing middleware
 app.use(helmet()); // sensible security headers (CSP off by default for a JSON API)
