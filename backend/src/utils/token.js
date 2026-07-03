@@ -9,6 +9,12 @@ let warned = false;
 function secret() {
   const s = process.env.JWT_SECRET;
   if (s) return s;
+  // Fail closed in production: signing/verifying with a hardcoded, source-visible
+  // secret would let anyone forge a token for any user. Outside production we keep
+  // a warned dev fallback so local development and tests work without config.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be set in production.');
+  }
   if (!warned) {
     console.warn('JWT_SECRET is not set — using an insecure dev fallback. Set it in production.');
     warned = true;

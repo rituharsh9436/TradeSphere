@@ -1,4 +1,3 @@
-const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const userService = require('../services/user.service');
 const walletService = require('../services/wallet.service');
@@ -36,14 +35,7 @@ const meController = {
 
   placeOrder: catchAsync(async (req, res) => {
     const { symbol, side, quantity, orderType, targetPrice } = req.body;
-    const type = orderType ? String(orderType).toUpperCase() : 'MARKET';
-    if (!['MARKET', 'LIMIT'].includes(type)) {
-      throw new AppError('orderType must be MARKET or LIMIT.', 400);
-    }
-    const data =
-      type === 'LIMIT'
-        ? { order: await orderService.placeLimitOrder({ userId: req.userId, symbol, side, quantity, targetPrice }) }
-        : await orderService.placeMarketOrder({ userId: req.userId, symbol, side, quantity });
+    const data = await orderService.place({ userId: req.userId, symbol, side, quantity, orderType, targetPrice });
     res.status(201).json({ status: 'success', data });
   }),
 
