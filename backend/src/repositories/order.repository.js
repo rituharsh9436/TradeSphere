@@ -37,6 +37,19 @@ const orderRepository = {
     return rows;
   },
 
+  // Bulk-cancels every PENDING order for a user (used by the reset/panic button).
+  // Returns the cancelled ids; non-pending orders are left as-is.
+  async cancelAllPendingByUser(userId, client = pool) {
+    const { rows } = await client.query(
+      `UPDATE orders
+       SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND status = 'PENDING'
+       RETURNING id`,
+      [userId]
+    );
+    return rows;
+  },
+
   // Locks a single order row so a fill/cancel can re-check status before mutating.
   async findByIdForUpdate(id, client = pool) {
     const { rows } = await client.query(
