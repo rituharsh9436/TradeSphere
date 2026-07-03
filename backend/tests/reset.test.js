@@ -176,3 +176,27 @@ test('resetService.resetAccount: no-op on a clean account', async () => {
   const ledger = await transactionRepository.listByUser(user);
   assert.equal(ledger.filter((t) => t.transaction_type === 'RESET').length, 0);
 });
+
+test('POST /api/users/:id/reset resets the account and returns a summary', async () => {
+  const user = await registerUser();
+  await marketBuy(user, 'AAPL', 4); // @195 -> position 4
+  await placeLimit(user, 'MSFT', 'BUY', 1, '1.0000'); // PENDING
+
+  const r = await apiJson('POST', `/api/users/${user}/reset`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.status, 'success');
+  assert.equal(r.body.data.positionsLiquidated, 1);
+  assert.equal(r.body.data.ordersCancelled, 1);
+  assert.equal(r.body.data.wallet.balance, '100000.0000');
+
+  // Confirm via the public endpoints too.
+  const wallet = await apiJson('GET', `/api/users/${user}/wallet`);
+  assert.equal(wallet.body.data.balance, '100000.0000');
+  const positions = await apiJson('GET', `/api/users/${user}/positions`);
+  assert.equal(positions.body.data.length, 0);
+});
+
+test('POST /api/users/:id/reset unknown user -> 404', async () => {
+  const r = await apiJson('POST', '/api/users/00000000-0000-0000-0000-000000000000/reset');
+  assert.equal(r.status, 404);
+});
