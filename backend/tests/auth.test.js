@@ -69,3 +69,24 @@ test('token.js: sign/verify round-trip, tamper + expiry rejected', async () => {
 
   assert.throws(() => verifyToken('not.a.jwt'), (e) => e.statusCode === 401);
 });
+
+const userRepository = require('../src/repositories/user.repository');
+
+test('userRepository: stores password_hash and exposes it only via findAuthByEmail', async () => {
+  const t = tag();
+  const email = `repo_${t}@test.com`;
+  const created = await userRepository.create({
+    username: `repo_${t}`, email, passwordHash: 'scrypt$aa$bb',
+  });
+  assert.ok(created.id);
+  assert.equal('password_hash' in created, false, 'create() does not leak the hash');
+
+  const plain = await userRepository.findById(created.id);
+  assert.equal('password_hash' in plain, false, 'findById is hash-free');
+
+  const auth = await userRepository.findAuthByEmail(email);
+  assert.equal(auth.password_hash, 'scrypt$aa$bb');
+  assert.equal(auth.id, created.id);
+
+  assert.equal(await userRepository.findAuthByEmail(`nope_${t}@test.com`), null);
+});
