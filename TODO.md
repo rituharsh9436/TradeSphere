@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-03 (Step 9 complete)_
+_Last updated: 2026-07-03 (Step 10 complete)_
 
 ---
 
@@ -86,15 +86,18 @@ _Last updated: 2026-07-03 (Step 9 complete)_
 - [x] Idempotent / no-op safe on a clean account
 - [x] Tests: full-reset invariants, unpriced fallback, no-op, ledger preservation, 404
 
-## ⬜ Step 10 — Authentication & accounts
-- [ ] Decide strategy (JWT vs. session)
-- [ ] `password_hash` on users; register/login endpoints
-- [ ] Auth middleware; scope wallet/orders/portfolio to the authenticated user
-- [ ] Tests
+## ✅ Step 10 — Authentication & accounts
+- [x] JWT bearer strategy; hashing (scrypt) + signing (HS256) via built-in `crypto` — no new deps
+- [x] `password_hash` on users (nullable; legacy dev users stay password-less)
+- [x] `POST /api/auth/register`, `POST /api/auth/login`; `requireAuth` middleware
+- [x] Token-scoped `/api/me/*` (wallet/positions/portfolio/orders/reset)
+- [x] Frontend: AuthContext + login/register, axios token interceptors, retired dev active-user bridge
+- [x] Tests: crypto utils, register/login, requireAuth, /api/me scoping (existing 57 still green)
 
 ---
 
 ## 🔧 Cross-cutting / backlog
+- [ ] Lock down / remove legacy unauthenticated `/api/users/*` + `/api/orders` (superseded by `/api/me/*`)
 - [ ] Input validation layer (e.g. schema validation middleware)
 - [ ] Request logging & structured error logging
 - [ ] `.env.example` committed; document required env vars
