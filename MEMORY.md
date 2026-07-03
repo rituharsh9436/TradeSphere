@@ -32,6 +32,7 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/market/candles` | market.routes.js | `marketController.getCandles` | `marketService.getCandles` |
 | `GET /api/users` | user.routes.js | `userController.list` | `userService.list` |
 | `GET /api/leaderboard` | leaderboard.routes.js | `leaderboardController.getLeaderboard` | `leaderboardService.getLeaderboard` |
+| `POST /api/users/:id/reset` | user.routes.js | `userController.reset` | `resetService.resetAccount` |
 
 `routes/index.js` mounts `/users`, `/orders`, `/market` and `/leaderboard`. Every controller method is wrapped
 in `utils/catchAsync.js` so rejected promises forward to the central error handler.
@@ -92,6 +93,17 @@ SUM, flagged by `has_unpriced`; ordered equity DESC, then created_at/id).
 `leaderboard.service.getLeaderboard` validates `limit`, then derives `totalEquity` and
 `roiPct` (vs the $100k start) at 4 dp and assigns 1-based `rank`. Equity order equals
 ROI order because every account starts at $100k with no deposits.
+
+## Reset / panic button (Step 9)
+`POST /api/users/:id/reset` restores an account to the starting state in one
+`withTransaction` (wallet locked FOR UPDATE first, so it serializes against order
+fills). `resetService.resetAccount` cancels all PENDING orders
+(`orderRepository.cancelAllPendingByUser`), liquidates every open position into an
+append-only `RESET` ledger row (`amount = qty × price`, price = current market price
+or the position's `average_buy_price` when the feed is quiet), zeroes the positions,
+then forces the wallet balance to `100000.0000`. Hard reset: the balance is
+definitional, not `old + Σ liquidations`; RESET rows are an audit of what was wiped.
+Idempotent/no-op on a clean account. Unknown user → 404.
 
 ## Frontend market view (Step 6b)
 `paper-trading-ui` Market page (`pages/Market.jsx`) is the live trading view.
