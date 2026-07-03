@@ -12,13 +12,17 @@ export const TIMEFRAMES = [
 
 function TimeframeSwitcher({ value, onChange }) {
   return (
-    <div style={{ display: "flex", gap: "4px" }}>
+    <div className="inline-flex rounded-md border border-line bg-plane p-1">
       {TIMEFRAMES.map((tf) => (
         <button
           key={tf.seconds}
           type="button"
           onClick={() => onChange(tf.seconds)}
-          style={{ fontWeight: value === tf.seconds ? "bold" : "normal" }}
+          className={`rounded px-3 py-1 text-sm font-semibold transition-colors ${
+            value === tf.seconds
+              ? "bg-accent text-white"
+              : "text-muted hover:bg-surface-2 hover:text-ink"
+          }`}
         >
           {tf.label}
         </button>

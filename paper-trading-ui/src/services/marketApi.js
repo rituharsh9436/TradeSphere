@@ -21,3 +21,39 @@ export async function placeOrder({ symbol, side, quantity }) {
   const res = await api.post("/me/orders", { symbol, side, quantity });
   return res.data.data;
 }
+
+export async function placeLimitOrder({ symbol, side, quantity, targetPrice }) {
+  const res = await api.post("/me/orders", {
+    symbol,
+    side,
+    quantity,
+    orderType: "LIMIT",
+    targetPrice,
+  });
+  return res.data.data;
+}
+
+export async function cancelOrder(orderId) {
+  const res = await api.delete(`/me/orders/${orderId}`);
+  return res.data.data;
+}
+
+export async function getPortfolio() {
+  const res = await api.get("/me/portfolio");
+  return res.data.data;
+}
+
+export async function getOrders() {
+  const res = await api.get("/me/orders");
+  return res.data.data;
+}
+
+export async function resetAccount() {
+  const res = await api.post("/me/reset");
+  return res.data.data;
+}
+
+export async function getLeaderboard({ limit = 50 } = {}) {
+  const res = await api.get("/leaderboard", { params: { limit } });
+  return res.data.data;
+}

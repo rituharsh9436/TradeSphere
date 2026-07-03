@@ -1,1 +1,118 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Money-logix design system — dark trading-terminal theme.
+   Palette derived from the validated data-viz reference (dark surface #1a1a19):
+   status green/red for gain/loss, blue accent, restrained ink + hairlines.
+   Tokens are exposed to Tailwind via @theme so utilities like `bg-surface`,
+   `text-ink`, `text-gain`, `border-line` are generated automatically.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-plane: #0d0d0d;      /* page background */
+  --color-surface: #1a1a19;    /* card surface */
+  --color-surface-2: #232321;  /* raised / hover surface */
+  --color-ink: #f4f4f2;        /* primary text */
+  --color-ink-secondary: #c3c2b7;
+  --color-muted: #898781;      /* labels, axis, de-emphasised */
+  --color-line: #2c2c2a;       /* hairline borders / gridlines */
+  --color-accent: #3987e5;     /* brand / interactive */
+  --color-accent-strong: #256abf;
+  --color-gain: #0ca30c;       /* positive delta */
+  --color-loss: #d03b3b;       /* negative delta */
+  --color-warning: #fab219;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-card: 0.75rem;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-plane);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numeric columns that must align vertically. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin, unobtrusive scrollbars that suit the dark theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 8px;
+}
+
+/* ---- Reusable component classes (kept few; pages compose utilities) ---- */
+@layer components {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  .field {
+    width: 100%;
+    background: var(--color-plane);
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field::placeholder {
+    color: var(--color-muted);
+  }
+  .field:focus {
+    border-color: var(--color-accent);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-strong);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--color-line);
+    color: var(--color-ink-secondary);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+}

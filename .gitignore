@@ -3,7 +3,7 @@ backend/node_modules/
 node_modules/
 
 .claude
-
+.agents
 # Environment variables
 .env
 backend/.env
@@ -33,3 +33,15 @@ build/
 
 # IDE
 .vscode/
+
+
+#error logs
+vite-dev.err.log*
+vite-dev.log*
+
+
+vite-dev.err.log
+vite-dev.log
+
+paper-trading-ui/src/vite-dev.err.log
+paper-trading-ui/src/vite-dev.log

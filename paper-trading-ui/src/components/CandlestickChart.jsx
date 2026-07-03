@@ -15,8 +15,14 @@ function CandlestickChart({ candles, seriesKey }) {
   useEffect(() => {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
-      height: 400,
-      timeScale: { timeVisible: true, secondsVisible: true },
+      height: 460,
+      layout: { background: { color: "#1a1a19" }, textColor: "#c3c2b7" },
+      grid: {
+        vertLines: { color: "#2c2c2a" },
+        horzLines: { color: "#2c2c2a" },
+      },
+      rightPriceScale: { borderColor: "#2c2c2a" },
+      timeScale: { borderColor: "#2c2c2a", timeVisible: true, secondsVisible: true },
     });
     const series = chart.addSeries(CandlestickSeries, {
       upColor: "rgb(38, 166, 154)",
@@ -54,7 +60,7 @@ function CandlestickChart({ candles, seriesKey }) {
     }
   }, [candles, seriesKey]);
 
-  return <div ref={containerRef} style={{ width: "100%" }} />;
+  return <div ref={containerRef} className="h-[460px] w-full" />;
 }
 
 export default CandlestickChart;
