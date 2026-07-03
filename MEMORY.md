@@ -33,9 +33,14 @@ Each layer depends only on the one beneath it. Money math uses `decimal.js` at
 | `GET /api/users` | user.routes.js | `userController.list` | `userService.list` |
 | `GET /api/leaderboard` | leaderboard.routes.js | `leaderboardController.getLeaderboard` | `leaderboardService.getLeaderboard` |
 | `POST /api/users/:id/reset` | user.routes.js | `userController.reset` | `resetService.resetAccount` |
+| `POST /api/auth/register` | auth.routes.js | `authController.register` | `authService.register` |
+| `POST /api/auth/login` | auth.routes.js | `authController.login` | `authService.login` |
+| `GET /api/me` (+ `/wallet`, `/positions`, `/portfolio`, `/orders`) | me.routes.js | `meController.*` | user/wallet/portfolio/order services |
+| `POST /api/me/orders`, `DELETE /api/me/orders/:id`, `POST /api/me/reset` | me.routes.js | `meController.*` | `orderService` / `resetService` |
 
-`routes/index.js` mounts `/users`, `/orders`, `/market` and `/leaderboard`. Every controller method is wrapped
-in `utils/catchAsync.js` so rejected promises forward to the central error handler.
+`routes/index.js` mounts `/users`, `/orders`, `/market`, `/leaderboard`, `/auth` and `/me`. Every controller method
+is wrapped in `utils/catchAsync.js` so rejected promises forward to the central error handler. The `/api/me/*`
+router is gated by `middleware/auth.requireAuth` (Step 10); everything else is currently unauthenticated.
 
 ## Core write path — place market order
 `POST /api/orders {userId, symbol, side, quantity}`
@@ -105,15 +110,34 @@ then forces the wallet balance to `100000.0000`. Hard reset: the balance is
 definitional, not `old + Σ liquidations`; RESET rows are an audit of what was wiped.
 Idempotent/no-op on a clean account. Unknown user → 404.
 
+## Authentication (Step 10)
+JWT bearer auth using only Node `crypto` (no deps). `utils/password.js` hashes with
+scrypt (`scrypt$salt$key`); `utils/token.js` signs/verifies HS256 JWTs (secret from
+`JWT_SECRET`, dev fallback + warning). `POST /api/auth/register` (username, email,
+password ≥ 8) hashes + creates user+wallet in one tx and returns `{user, token}`;
+`POST /api/auth/login` verifies and returns a token (generic 401; NULL-hash legacy
+users can't log in). `middleware/auth.requireAuth` verifies the `Authorization: Bearer`
+token and sets `req.userId`. The `/api/me/*` router (all behind requireAuth) scopes
+wallet/positions/portfolio/orders/reset to the token user — the id never comes from the
+client. `users.password_hash` is nullable so legacy `POST /api/users` dev users still
+work and the prior 57 tests stay green; locking down the legacy `/api/users/*` +
+`/api/orders` surface is a noted backlog follow-up. `userRepository.findAuthByEmail` is
+the only method that returns the hash. Frontend: `context/AuthContext.jsx` +
+`services/authApi.js`, `pages/Login.jsx`/`Register.jsx`, a `RequireAuth` route guard,
+`lib/authStorage.js` (localStorage token), and an axios interceptor that attaches the
+token and bounces to `/login` on 401 — replacing the retired `ActiveUserContext`/
+`UserPicker` dev bridge.
+
 ## Frontend market view (Step 6b)
 `paper-trading-ui` Market page (`pages/Market.jsx`) is the live trading view.
 `hooks/useMarketData.js` opens one `services/marketSocket.js` WebSocket to
 `ws://localhost:5000/ws/market`, keeping a latest-price map (PriceList) and fanning
 raw ticks out. The selected symbol's candle is built client-side by pure helpers in
 `lib/candles.js` (`applyTickToCandles`/`bucketStart`), seeded from `/api/market/candles`
-and drawn by `components/CandlestickChart.jsx` (lightweight-charts v5). Trading uses a
-dev "active user" in `context/ActiveUserContext.jsx` (localStorage, set via Navbar
-`UserPicker`, backed by `GET /api/users`), posting to `POST /api/orders`.
+and drawn by `components/CandlestickChart.jsx` (lightweight-charts v5). Trading now runs
+as the authenticated user (Step 10): `components/TradePanel.jsx` reads the user from
+`AuthContext` and posts to `POST /api/me/orders` (token attached by the axios interceptor).
+The old dev "active user" bridge (`ActiveUserContext`/`UserPicker`) has been removed.
 
 ## Error handling
 Any layer throws `utils/AppError.js` (statusCode, isOperational) → caught by
