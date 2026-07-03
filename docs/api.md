@@ -7,6 +7,8 @@ REST + WebSocket API for the paper-trading engine. This document is organised
 - **Base URL:** `http://localhost:5000`
 - **API prefix:** all REST routes live under `/api`
 - **WebSocket:** `ws://localhost:5000/ws/market`
+- **Machine-readable spec:** [`docs/openapi.json`](./openapi.json) (OpenAPI 3.1),
+  also served live at `GET /api/openapi.json`
 
 ---
 
