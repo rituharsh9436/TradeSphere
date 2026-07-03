@@ -11,7 +11,8 @@ money math uses `decimal.js` (no floating-point drift), and the `transactions`
 ledger is append-only, enforced at the database level.
 
 > See [`product_description.md`](./product_description.md) for the full product
-> spec and [`docs/api.md`](./docs/api.md) for the complete API reference.
+> spec, [`docs/api.md`](./docs/api.md) for the complete API reference, and
+> [`docs/architecture.md`](./docs/architecture.md) for the system design.
 
 ---
 
