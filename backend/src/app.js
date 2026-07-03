@@ -1,22 +1,25 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 
 const apiRoutes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimit');
 
 const app = express();
 
-// Middleware
+// Security & parsing middleware
+app.use(helmet()); // sensible security headers (CSP off by default for a JSON API)
 app.use(cors());
 app.use(express.json()); // Parses incoming JSON requests
 
-// Health check route
+// Health check route (no rate limit — used by liveness probes)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'UP', message: 'Trading engine is running.' });
 });
 
-// API routes
-app.use('/api', apiRoutes);
+// API routes (rate-limited in production; inert in dev/test)
+app.use('/api', apiLimiter, apiRoutes);
 
 // 404 + central error handler (must be registered last)
 app.use(notFound);
