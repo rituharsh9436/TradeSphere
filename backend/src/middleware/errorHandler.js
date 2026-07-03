@@ -24,8 +24,22 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ status: 'fail', message: 'Invalid identifier format.' });
   }
 
-  if (!err.isOperational && statusCode === 500) {
-    console.error('UNEXPECTED ERROR:', err);
+  // Structured server-side log for genuine failures (5xx / unexpected bugs).
+  // Operational 4xx errors are expected client mistakes and are not logged.
+  // Silent under test to keep the suite output clean.
+  if (statusCode >= 500 && process.env.NODE_ENV !== 'test') {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: 'unhandled_error',
+        method: req.method,
+        path: req.originalUrl,
+        statusCode,
+        error: err.message,
+        code: err.code,
+        stack: err.isOperational ? undefined : err.stack,
+      })
+    );
   }
 
   res.status(statusCode).json({
