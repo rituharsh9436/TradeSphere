@@ -45,3 +45,13 @@ vite-dev.log
 
 paper-trading-ui/src/vite-dev.err.log
 paper-trading-ui/src/vite-dev.log
+
+
+backend/backend-dev.err.log
+backend/backend-dev.log
+
+backend-dev.err.log*
+backend-dev.log*
+
+backend-dev.err.log
+backend-dev.log

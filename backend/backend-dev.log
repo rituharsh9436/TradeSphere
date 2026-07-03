@@ -1,9 +1,0 @@
-
-> backend@1.0.0 start
-> node src/server.js
-
-◇ injected env (2) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
-◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
-Database connection pool established successfully.
-Market data pipeline started in 'simulated' mode.
-Server is running on http://localhost:5000
