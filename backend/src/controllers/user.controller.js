@@ -1,6 +1,7 @@
 const userService = require('../services/user.service');
 const walletService = require('../services/wallet.service');
 const portfolioService = require('../services/portfolio.service');
+const resetService = require('../services/reset.service');
 const catchAsync = require('../utils/catchAsync');
 
 // Thin HTTP adapters: parse the request, call the service, shape the response.
@@ -35,6 +36,13 @@ const userController = {
   getPortfolio: catchAsync(async (req, res) => {
     const portfolio = await portfolioService.getPortfolio(req.params.id);
     res.status(200).json({ status: 'success', data: portfolio });
+  }),
+
+  // POST /api/users/:id/reset — panic button: liquidate positions, cancel
+  // pending orders, restore the wallet to the starting balance.
+  reset: catchAsync(async (req, res) => {
+    const summary = await resetService.resetAccount({ userId: req.params.id });
+    res.status(200).json({ status: 'success', data: summary });
   }),
 };
 
