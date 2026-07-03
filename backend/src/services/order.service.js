@@ -67,6 +67,20 @@ async function settleFill(client, { userId, assetId, side, qty, price }) {
 }
 
 const orderService = {
+  // Single entry point for placing an order from any surface. Normalizes and
+  // validates orderType, dispatches to the MARKET/LIMIT executor, and returns the
+  // response `data` shape (LIMIT is wrapped as { order } since it only rests).
+  // Both /api/orders and /api/me/orders delegate here so the two never drift.
+  async place({ userId, symbol, side, quantity, orderType, targetPrice }) {
+    const type = orderType ? String(orderType).toUpperCase() : 'MARKET';
+    if (!['MARKET', 'LIMIT'].includes(type)) {
+      throw new AppError('orderType must be MARKET or LIMIT.', 400);
+    }
+    return type === 'LIMIT'
+      ? { order: await orderService.placeLimitOrder({ userId, symbol, side, quantity, targetPrice }) }
+      : orderService.placeMarketOrder({ userId, symbol, side, quantity });
+  },
+
   // Executes a MARKET order immediately at the current market price. The entire
   // operation runs in one transaction with the wallet row locked FOR UPDATE, so
   // concurrent orders from the same user serialize and can never over-draft.
