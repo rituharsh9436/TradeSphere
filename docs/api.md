@@ -368,9 +368,12 @@ otherwise a simulated random walk (a tick every ~2s).
 
 ---
 
-## Legacy / dev endpoints (unauthenticated)
-These predate auth and remain open as an internal/dev surface. **Prefer the
-`/api/me/*` equivalents** — locking these down is a tracked backlog item.
+## Legacy / dev endpoints (unauthenticated, non-production only)
+These predate auth and trust a client-supplied `userId`. They are mounted **only
+when `NODE_ENV !== production`** — in production they are not registered and return
+`404`, leaving the authenticated `/api/me/*` surface as the only user-scoped API.
+**Prefer the `/api/me/*` equivalents**; fully removing these is a tracked backlog
+item.
 
 | Method & Path | Notes |
 |---|---|
@@ -411,6 +414,9 @@ Liveness probe: `{ "status": "UP", "message": "Trading engine is running." }`.
 ---
 
 ## Environment
-- `JWT_SECRET` — signs auth tokens (HS256). Required in production; a dev fallback is
-  used with a warning if unset.
+- `NODE_ENV` — set to `production` in deployment. This drops the legacy
+  `/api/users` and `/api/orders` dev routes and makes `JWT_SECRET` mandatory.
+- `JWT_SECRET` — signs auth tokens (HS256). **Required in production** (the server
+  refuses to sign tokens without it); a warned dev fallback is used only when
+  `NODE_ENV !== production`.
 - `DATABASE_URL`, `FINNHUB_API_KEY` (optional) — see `backend/.env.example`.
