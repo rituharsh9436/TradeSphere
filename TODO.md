@@ -5,7 +5,7 @@ product spec and `backend/tests/scenario.test.js` for the integration suite.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-07-03 (Step 10 complete)_
+_Last updated: 2026-07-04 (cross-cutting backlog complete)_
 
 ---
 
@@ -97,11 +97,11 @@ _Last updated: 2026-07-03 (Step 10 complete)_
 ---
 
 ## 🔧 Cross-cutting / backlog
-- [ ] Lock down / remove legacy unauthenticated `/api/users/*` + `/api/orders` (superseded by `/api/me/*`)
-- [ ] Input validation layer (e.g. schema validation middleware)
-- [ ] Request logging & structured error logging
+- [x] Lock down legacy unauthenticated `/api/users/*` + `/api/orders` — **production-gated**: mounted only when `NODE_ENV !== production`, so prod exposes only `/api/me/*`. (Full removal + test migration intentionally deferred.)
+- [x] Input validation layer — hand-rolled `validate(schema)` middleware + `validation/schemas.js`, wired on auth/order routes
+- [x] Request logging & structured error logging — `requestLogger` middleware + structured 5xx logging in `errorHandler`
 - [x] `.env.example` committed; document required env vars
-- [ ] `docs/architecture.md` (data-flow + layer responsibilities)
-- [ ] CI workflow to run `npm test` on push
-- [ ] Rate limiting / basic security headers
-- [ ] API documentation (OpenAPI / README endpoint table)
+- [x] `docs/architecture.md` (data-flow + layer responsibilities)
+- [x] CI workflow to run `npm test` on push — `.github/workflows/ci.yml` (backend + frontend jobs)
+- [x] Rate limiting / basic security headers — `helmet` + `express-rate-limit` (production-only limiters)
+- [x] API documentation — `docs/api.md`, README endpoint table, and OpenAPI 3.1 spec (`docs/openapi.json`, served at `GET /api/openapi.json`)
