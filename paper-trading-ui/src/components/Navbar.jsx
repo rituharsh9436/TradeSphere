@@ -10,43 +10,43 @@ const LINKS = [
 
 function Navbar() {
   const { user, token, logout } = useAuth();
-  if (!token) return null; // hidden on login/register
+  if (!token) return null;
 
   return (
     <nav className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
         <span className="flex items-center gap-2 font-bold tracking-tight">
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-accent text-sm text-white">
-            M
+          <span className="grid h-7 w-7 place-items-center rounded-md bg-accent text-sm font-black text-plane">
+            ML
           </span>
           Money<span className="text-accent">logix</span>
         </span>
 
-        <div className="flex items-center gap-1">
-          {LINKS.map((l) => (
+        <div className="hidden items-center gap-1 rounded-md border border-line bg-plane p-1 md:flex">
+          {LINKS.map((link) => (
             <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
+              key={link.to}
+              to={link.to}
+              end={link.end}
               className={({ isActive }) =>
                 `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-surface-2 text-ink"
+                    ? "bg-surface-3 text-ink"
                     : "text-muted hover:text-ink"
                 }`
               }
             >
-              {l.label}
+              {link.label}
             </NavLink>
           ))}
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-sm text-muted sm:inline">
-            Signed in as{" "}
-            <strong className="text-ink-secondary">{user?.username || "…"}</strong>
+          <span className="hidden rounded-md border border-line bg-plane px-3 py-1.5 text-sm text-muted sm:inline">
+            Demo account{" "}
+            <strong className="text-ink-secondary">{user?.username || "..."}</strong>
           </span>
-          <button type="button" className="btn btn-ghost text-sm" onClick={logout}>
+          <button type="button" className="btn btn-primary py-1.5 text-sm" onClick={logout}>
             Log out
           </button>
         </div>

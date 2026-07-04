@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createMarketSocket } from "../services/marketSocket";
+import { getPrices } from "../services/marketApi";
 
 const WS_URL = "ws://localhost:5000/ws/market";
 
@@ -15,12 +16,27 @@ export function useMarketData() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    getPrices()
+      .then((snapshot) => {
+        if (!active) return;
+        setPrices(
+          Object.fromEntries(
+            snapshot.map((p) => [p.symbol, { price: p.price, ts: p.updatedAt }])
+          )
+        );
+      })
+      .catch(() => {
+        // The WebSocket can still populate prices; keep startup resilient.
+      });
+
     const sock = createMarketSocket(WS_URL);
     const off = sock.subscribe((tick) => {
       setPrices((prev) => ({ ...prev, [tick.symbol]: { price: tick.price, ts: tick.ts } }));
       for (const cb of listenersRef.current) cb(tick);
     });
     return () => {
+      active = false;
       off();
       sock.close();
     };

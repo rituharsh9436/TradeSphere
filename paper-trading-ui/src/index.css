@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   Money-logix design system — dark trading-terminal theme.
-   Palette derived from the validated data-viz reference (dark surface #1a1a19):
-   status green/red for gain/loss, blue accent, restrained ink + hairlines.
-   Tokens are exposed to Tailwind via @theme so utilities like `bg-surface`,
-   `text-ink`, `text-gain`, `border-line` are generated automatically.
+   Moneylogix trading theme.
+   Inspired by compact binary-options trading terminals: near-black chart canvas,
+   graphite control panels, yellow account/action accents, and strong green/red
+   directional actions. No third-party branding or assets are used.
 --------------------------------------------------------------------------- */
 @theme {
-  --color-plane: #0d0d0d;      /* page background */
-  --color-surface: #1a1a19;    /* card surface */
-  --color-surface-2: #232321;  /* raised / hover surface */
-  --color-ink: #f4f4f2;        /* primary text */
-  --color-ink-secondary: #c3c2b7;
-  --color-muted: #898781;      /* labels, axis, de-emphasised */
-  --color-line: #2c2c2a;       /* hairline borders / gridlines */
-  --color-accent: #3987e5;     /* brand / interactive */
-  --color-accent-strong: #256abf;
-  --color-gain: #0ca30c;       /* positive delta */
-  --color-loss: #d03b3b;       /* negative delta */
-  --color-warning: #fab219;
+  --color-plane: #191b20;
+  --color-surface: #24262d;
+  --color-surface-2: #30333b;
+  --color-surface-3: #3a3d47;
+  --color-ink: #f4f5f7;
+  --color-ink-secondary: #c4c7d0;
+  --color-muted: #818690;
+  --color-line: #383b44;
+  --color-accent: #f7ca24;
+  --color-accent-strong: #e4b50b;
+  --color-gain: #21c983;
+  --color-loss: #ff5b6b;
+  --color-warning: #f7ca24;
 
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --radius-card: 0.75rem;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-card: 0.5rem;
 }
 
 html,
@@ -39,26 +39,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Numeric columns that must align vertically. */
 .tnum {
   font-variant-numeric: tabular-nums;
 }
 
-/* Thin, unobtrusive scrollbars that suit the dark theme. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--color-surface-3) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+  background: var(--color-surface-3);
   border-radius: 8px;
 }
 
-/* ---- Reusable component classes (kept few; pages compose utilities) ---- */
 @layer components {
   .card {
     background: var(--color-surface);
@@ -68,18 +65,19 @@ body {
 
   .field {
     width: 100%;
-    background: var(--color-plane);
-    border: 1px solid var(--color-line);
-    border-radius: 0.5rem;
-    padding: 0.55rem 0.75rem;
+    background: var(--color-surface-3);
+    border: 1px solid #494d58;
+    border-radius: 0.45rem;
+    padding: 0.62rem 0.75rem;
     color: var(--color-ink);
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background-color 0.15s;
   }
   .field::placeholder {
     color: var(--color-muted);
   }
   .field:focus {
+    background: #41454f;
     border-color: var(--color-accent);
   }
 
@@ -88,20 +86,20 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 0.5rem;
-    padding: 0.55rem 0.9rem;
-    font-weight: 600;
+    border-radius: 0.45rem;
+    padding: 0.58rem 0.95rem;
+    font-weight: 700;
     cursor: pointer;
     border: 1px solid transparent;
-    transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
   }
   .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
   }
   .btn-primary {
     background: var(--color-accent);
-    color: #fff;
+    color: #1f2128;
   }
   .btn-primary:hover:not(:disabled) {
     background: var(--color-accent-strong);
@@ -114,5 +112,19 @@ body {
   .btn-ghost:hover:not(:disabled) {
     background: var(--color-surface-2);
     color: var(--color-ink);
+  }
+  .btn-up {
+    background: var(--color-gain);
+    color: #fff;
+  }
+  .btn-up:hover:not(:disabled) {
+    background: #19b171;
+  }
+  .btn-down {
+    background: var(--color-loss);
+    color: #fff;
+  }
+  .btn-down:hover:not(:disabled) {
+    background: #eb4c5c;
   }
 }
