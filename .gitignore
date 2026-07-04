@@ -12,6 +12,8 @@ backend/.env.development
 backend/.env.test
 backend/.env.production
 
+.env*
+
 # Optional npm cache and logs
 npm-debug.log*
 yarn-debug.log*

@@ -1,20 +1,26 @@
 import { useEffect, useState } from "react";
+import { Activity, Radio, WifiOff } from "lucide-react";
 import CandlestickChart from "../components/CandlestickChart";
 import PriceList from "../components/PriceList";
+import Skeleton from "../components/Skeleton";
+import StatusBadge from "../components/StatusBadge";
 import TimeframeSwitcher from "../components/TimeframeSwitcher";
+import Toast from "../components/Toast";
 import TradePanel from "../components/TradePanel";
 import { useMarketData } from "../hooks/useMarketData";
 import { applyTickToCandles, toChartCandles } from "../lib/candles";
 import { money } from "../lib/format";
-import { getCandles } from "../services/marketApi";
+import { getCandles, getPortfolio } from "../services/marketApi";
 
 function Market() {
-  const { prices, subscribeTick } = useMarketData();
+  const { prices, subscribeTick, connectionStatus } = useMarketData();
   const [symbol, setSymbol] = useState("AAPL");
   const [interval, setIntervalSec] = useState(60);
   const [candles, setCandles] = useState([]);
   const [loadId, setLoadId] = useState(0);
+  const [portfolio, setPortfolio] = useState(null);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +40,18 @@ function Market() {
   }, [symbol, interval]);
 
   useEffect(() => {
+    let active = true;
+    getPortfolio()
+      .then((data) => {
+        if (active) setPortfolio(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     return subscribeTick((tick) => {
       if (tick.symbol !== symbol) return;
       setCandles((prev) => applyTickToCandles(prev, tick, interval));
@@ -42,41 +60,66 @@ function Market() {
 
   const seriesKey = `${symbol}:${interval}:${loadId}`;
   const livePrice = prices[symbol]?.price ?? "0";
+  const liveTick = prices[symbol];
+  const loadingCandles = candles.length === 0 && !error;
+  const isLive = connectionStatus === "live";
+
+  async function refreshPortfolio(status) {
+    setToast(status);
+    try {
+      setPortfolio(await getPortfolio());
+    } catch {
+      // Keep the order result visible even if the follow-up portfolio refresh fails.
+    }
+  }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
+    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
+      <Toast message={toast?.message} type={toast?.ok ? "success" : "error"} onClose={() => setToast(null)} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Market</h1>
           <p className="text-sm text-muted">Live prices, candles, and order entry.</p>
         </div>
-        <div className="rounded-md border border-line bg-surface px-4 py-2">
-          <span className="mr-3 text-sm text-muted">{symbol}</span>
-          <span className="tnum text-lg font-semibold">{money(livePrice)}</span>
+        <div className="grid gap-2 rounded-md border border-line bg-surface px-4 py-2 sm:min-w-72">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-muted">{symbol}</span>
+            <StatusBadge tone={isLive ? "LIVE" : "PENDING"}>{isLive ? "Live" : "Reconnecting"}</StatusBadge>
+          </div>
+          <div className="flex items-end justify-between gap-4">
+            <span className="tnum text-2xl font-semibold">{money(livePrice)}</span>
+            <span className="text-xs text-muted">{liveTick?.ts ? new Date(liveTick.ts).toLocaleTimeString() : "Awaiting tick"}</span>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
         <aside className="card p-4">
-          <h2 className="mb-3 font-semibold">Symbols</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold">Symbols</h2>
+            {isLive ? <Radio className="h-4 w-4 text-gain" aria-hidden="true" /> : <WifiOff className="h-4 w-4 text-warning" aria-hidden="true" />}
+          </div>
           <PriceList prices={prices} selected={symbol} onSelect={setSymbol} />
         </aside>
 
         <section className="card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold">{symbol} Candles</h2>
-              <p className="text-sm text-muted">{candles.length} bars loaded</p>
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-accent" aria-hidden="true" />
+                <h2 className="font-semibold">{symbol} Candles</h2>
+              </div>
+              <p className="mt-1 text-sm text-muted">{candles.length} bars loaded</p>
             </div>
             <TimeframeSwitcher value={interval} onChange={setIntervalSec} />
           </div>
           {error && <div className="m-4 rounded-md border border-loss/50 p-3 text-sm text-loss">{error}</div>}
-          <CandlestickChart candles={candles} seriesKey={seriesKey} />
+          {loadingCandles ? <div className="p-4"><Skeleton className="h-[428px] w-full" /></div> : <CandlestickChart candles={candles} seriesKey={seriesKey} />}
         </section>
 
-        <aside className="card p-4">
+        <aside className="card p-4 lg:sticky lg:top-20 lg:self-start">
           <h2 className="mb-3 font-semibold">Trade</h2>
-          <TradePanel symbol={symbol} price={livePrice} />
+          <TradePanel symbol={symbol} price={livePrice} portfolio={portfolio} onOrderPlaced={refreshPortfolio} />
         </aside>
       </div>
     </main>

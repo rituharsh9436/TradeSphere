@@ -20,7 +20,7 @@ function TimeframeSwitcher({ value, onChange }) {
           onClick={() => onChange(tf.seconds)}
           className={`rounded px-3 py-1 text-sm font-semibold transition-colors ${
             value === tf.seconds
-              ? "bg-accent text-white"
+              ? "bg-accent text-plane"
               : "text-muted hover:bg-surface-2 hover:text-ink"
           }`}
         >

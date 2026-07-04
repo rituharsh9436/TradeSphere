@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 function RequireAuth({ children }) {
   const { token, loading } = useAuth();
   if (loading)
-    return <div className="grid min-h-screen place-items-center text-muted">Loading…</div>;
+    return <div className="grid min-h-screen place-items-center text-muted">Loading...</div>;
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }

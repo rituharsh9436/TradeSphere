@@ -8,6 +8,7 @@ const WS_URL = "ws://localhost:5000/ws/market";
 // price list and (b) a raw tick subscription for the selected-symbol candle.
 export function useMarketData() {
   const [prices, setPrices] = useState({});
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
   const listenersRef = useRef(new Set());
 
   const subscribeTick = useCallback((cb) => {
@@ -30,7 +31,7 @@ export function useMarketData() {
         // The WebSocket can still populate prices; keep startup resilient.
       });
 
-    const sock = createMarketSocket(WS_URL);
+    const sock = createMarketSocket(WS_URL, { onStatus: setConnectionStatus });
     const off = sock.subscribe((tick) => {
       setPrices((prev) => ({ ...prev, [tick.symbol]: { price: tick.price, ts: tick.ts } }));
       for (const cb of listenersRef.current) cb(tick);
@@ -42,5 +43,5 @@ export function useMarketData() {
     };
   }, []);
 
-  return { prices, subscribeTick };
+  return { prices, subscribeTick, connectionStatus };
 }

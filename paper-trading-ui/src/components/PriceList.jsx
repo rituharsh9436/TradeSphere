@@ -1,3 +1,4 @@
+import { Clock3 } from "lucide-react";
 import { money } from "../lib/format";
 
 // Live latest-price rows. `prices` is the map from useMarketData; each row shows
@@ -26,8 +27,16 @@ function PriceList({ prices, selected, onSelect }) {
               : "border-line bg-plane text-ink-secondary hover:border-muted hover:text-ink"
           }`}
         >
-          <span className="font-semibold">{symbol}</span>
-          <span className="tnum text-sm">{money(prices[symbol].price)}</span>
+          <span>
+            <span className="block font-semibold">{symbol}</span>
+            {prices[symbol].ts && (
+              <span className="mt-1 flex items-center gap-1 text-xs text-muted">
+                <Clock3 className="h-3 w-3" aria-hidden="true" />
+                {new Date(prices[symbol].ts).toLocaleTimeString()}
+              </span>
+            )}
+          </span>
+          <span className="tnum text-sm font-semibold">{money(prices[symbol].price)}</span>
         </button>
       ))}
     </div>
