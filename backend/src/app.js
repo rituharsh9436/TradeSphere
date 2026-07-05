@@ -19,6 +19,18 @@ try {
 
 const app = express();
 
+// Trust the reverse proxy / load balancer so req.ip is the real client IP
+// (X-Forwarded-For) rather than the proxy's — without this, rate limiting keys
+// every request to the single proxy IP. TRUST_PROXY accepts a hop count or an
+// express trust-proxy value; defaults to 1 in production, off otherwise.
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy !== undefined) {
+  const asNum = Number(trustProxy);
+  app.set('trust proxy', Number.isNaN(asNum) ? trustProxy : asNum);
+} else if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Observability first, so every request (including 4xx/5xx) is logged.
 app.use(requestLogger);
 
