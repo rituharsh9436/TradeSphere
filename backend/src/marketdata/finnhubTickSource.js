@@ -29,11 +29,22 @@ function createFinnhubTickSource({
       return [];
     }
     if (!msg || msg.type !== 'trade' || !Array.isArray(msg.data)) return [];
-    return msg.data.map((d) => ({
-      symbol: d.s,
-      price: new Decimal(d.p).toFixed(4),
-      ts: new Date(d.t).toISOString(),
-    }));
+    // Parse each trade defensively: a single malformed element (null/non-numeric
+    // price, bad timestamp) must not throw out of the ws 'message' handler and
+    // crash the process — skip it and keep the rest of the batch.
+    const ticks = [];
+    for (const d of msg.data) {
+      try {
+        ticks.push({
+          symbol: d.s,
+          price: new Decimal(d.p).toFixed(4),
+          ts: new Date(d.t).toISOString(),
+        });
+      } catch {
+        // drop the bad trade
+      }
+    }
+    return ticks;
   }
 
   function connect() {

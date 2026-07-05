@@ -54,12 +54,15 @@ function createIngestionWorker({
     const assetId = assetIdBySymbol.get(tick.symbol);
     if (!assetId) return; // not a tracked asset — nothing to persist
 
+    // Match limit orders on EVERY tick — a crossing that appears and reverts
+    // inside the throttle window must still fill. Only the DB writes are throttled.
+    runMatcher(tick.symbol, tick.price);
+
     const t = now();
     const last = lastWriteAt.get(tick.symbol);
-    if (last !== undefined && t - last < throttleMs) return; // throttled
+    if (last !== undefined && t - last < throttleMs) return; // throttle DB writes only
     lastWriteAt.set(tick.symbol, t);
     void persist(assetId, tick);
-    runMatcher(tick.symbol, tick.price);
   }
 
   return {
