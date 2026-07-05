@@ -16,8 +16,13 @@ function checkField(name, rule, value) {
   }
 
   if (rule.type === 'number') {
-    const n = typeof value === 'number' ? value : Number(value);
-    if (Number.isNaN(n)) return `${name} must be a number.`;
+    // Accept only a real number or a numeric string — reject booleans, arrays and
+    // objects (which Number() would silently coerce to 0/1/NaN) and non-finite
+    // values like Infinity (JSON.parse turns 1e999 into Infinity).
+    const isNumericString = typeof value === 'string' && value.trim() !== '';
+    if (typeof value !== 'number' && !isNumericString) return `${name} must be a number.`;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return `${name} must be a finite number.`;
     if (rule.min !== undefined && n < rule.min) return `${name} must be at least ${rule.min}.`;
     if (rule.max !== undefined && n > rule.max) return `${name} must be at most ${rule.max}.`;
     return null;

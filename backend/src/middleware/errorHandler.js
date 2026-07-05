@@ -10,14 +10,16 @@ const notFound = (req, res, next) => {
 const errorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
 
-  // Map a couple of common Postgres errors to friendly client responses.
+  // Map a couple of common Postgres errors to friendly client responses. These
+  // are client faults, so they use status:'fail' (4xx) like every other client
+  // error — not 'error', which the envelope contract reserves for 5xx.
   if (err.code === '23505') {
     // unique_violation
-    return res.status(409).json({ status: 'error', message: 'Resource already exists.' });
+    return res.status(409).json({ status: 'fail', message: 'Resource already exists.' });
   }
   if (err.code === '23514' || err.code === '23502') {
     // check_violation / not_null_violation
-    return res.status(400).json({ status: 'error', message: 'Invalid input data.' });
+    return res.status(400).json({ status: 'fail', message: 'Invalid input data.' });
   }
   if (err.code === '22P02') {
     // invalid_text_representation — e.g. a malformed UUID in the URL
