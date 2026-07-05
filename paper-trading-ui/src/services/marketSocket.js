@@ -2,7 +2,7 @@
 // every tick out to all subscribers. Reconnects automatically unless closed by
 // the caller. WebSocketImpl is injectable so the parsing/dispatch logic is
 // unit-testable without a real socket.
-export function createMarketSocket(url, { WebSocketImpl = WebSocket, reconnectMs = 2000 } = {}) {
+export function createMarketSocket(url, { WebSocketImpl = WebSocket, reconnectMs = 2000, onStatus = () => {} } = {}) {
   const listeners = new Set();
   let ws = null;
   let stopped = false;
@@ -10,8 +10,12 @@ export function createMarketSocket(url, { WebSocketImpl = WebSocket, reconnectMs
 
   function connect() {
     if (stopped) return;
+    onStatus("connecting");
     ws = new WebSocketImpl(url);
 
+    ws.onopen = () => {
+      onStatus("live");
+    };
     ws.onmessage = (evt) => {
       let msg;
       try {
@@ -24,7 +28,11 @@ export function createMarketSocket(url, { WebSocketImpl = WebSocket, reconnectMs
     };
     ws.onclose = () => {
       if (stopped) return;
+      onStatus("reconnecting");
       retryTimer = setTimeout(connect, reconnectMs);
+    };
+    ws.onerror = () => {
+      onStatus("reconnecting");
     };
   }
 
@@ -37,6 +45,7 @@ export function createMarketSocket(url, { WebSocketImpl = WebSocket, reconnectMs
     },
     close() {
       stopped = true;
+      onStatus("closed");
       if (retryTimer) clearTimeout(retryTimer);
       if (ws) ws.close();
     },

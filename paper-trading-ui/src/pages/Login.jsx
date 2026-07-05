@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { LogIn } from "lucide-react";
+import AuthShell from "../components/AuthShell";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
@@ -24,18 +26,46 @@ function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: "60px auto", display: "flex", flexDirection: "column", gap: 8 }}>
-      <h1>Log in</h1>
-      <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <input placeholder="email" type="email" value={form.email} required
-          onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input placeholder="password" type="password" value={form.password} required
-          onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        <button type="submit" disabled={busy}>Log in</button>
+    <AuthShell
+      eyebrow="Paper-trading terminal"
+      title="Log in"
+      footer={
+        <p className="mt-4 text-center text-sm text-muted">
+          No account?{" "}
+          <Link to="/register" className="font-medium text-accent hover:underline">
+            Register
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Email</span>
+          <input
+            className="field"
+            type="email"
+            value={form.email}
+            required
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Password</span>
+          <input
+            className="field"
+            type="password"
+            value={form.password}
+            required
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+        </label>
+        <button type="submit" className="btn btn-primary mt-1" disabled={busy}>
+          <LogIn className="h-4 w-4" aria-hidden="true" />
+          {busy ? "Logging in..." : "Log in"}
+        </button>
       </form>
-      {error && <span style={{ color: "crimson" }}>{error}</span>}
-      <span>No account? <Link to="/register">Register</Link></span>
-    </div>
+      {error && <p className="mt-3 text-sm text-loss">{error}</p>}
+    </AuthShell>
   );
 }
 
