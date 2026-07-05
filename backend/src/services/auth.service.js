@@ -7,6 +7,11 @@ const { signToken } = require('../utils/token');
 
 const MIN_PASSWORD_LEN = 8;
 
+// Emails are identity — normalize to a canonical form (trim + lowercase) on both
+// write and lookup so case/whitespace variants can't create duplicate accounts or
+// break login (e.g. registering "Foo@X.com" then logging in as "foo@x.com").
+const normalizeEmail = (email) => String(email).trim().toLowerCase();
+
 // A well-formed (salt/key of the right length) but unmatchable hash. When an
 // email is unknown or a legacy account has a NULL password_hash, we still run a
 // full scrypt verification against this so the login path costs the same as a
@@ -23,13 +28,17 @@ const authService = {
     if (typeof password !== 'string' || password.length < MIN_PASSWORD_LEN) {
       throw new AppError(`password must be at least ${MIN_PASSWORD_LEN} characters.`, 400);
     }
+    const normalizedEmail = normalizeEmail(email);
 
-    const existing = await userRepository.findByEmail(email);
+    const existing = await userRepository.findByEmail(normalizedEmail);
     if (existing) throw new AppError('A user with this email already exists.', 409);
 
     const passwordHash = await hashPassword(password);
     const user = await withTransaction(async (client) => {
-      const created = await userRepository.create({ username, email, passwordHash }, client);
+      const created = await userRepository.create(
+        { username, email: normalizedEmail, passwordHash },
+        client
+      );
       await walletRepository.create({ userId: created.id }, client);
       return created;
     });
@@ -41,7 +50,7 @@ const authService = {
   // enumeration); a NULL password_hash (legacy dev user) can never authenticate.
   async login({ email, password }) {
     if (!email || !password) throw new AppError('email and password are required.', 400);
-    const account = await userRepository.findAuthByEmail(email);
+    const account = await userRepository.findAuthByEmail(normalizeEmail(email));
     // Always run one verification (against a dummy hash when there is no usable
     // account) so timing does not reveal whether the email exists. A match only
     // counts when the account actually has a stored hash.
