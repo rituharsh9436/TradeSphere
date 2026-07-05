@@ -120,8 +120,14 @@ Token-based, built on Node `crypto` only (no `jsonwebtoken`/`bcrypt`).
 - **Register** (`auth.service.register`): validate → hash password with scrypt
   (`utils/password`, stored as `scrypt$<salt>$<key>`) → create user + wallet in one
   transaction → return the hash-free user + a signed JWT.
-- **Login**: look up by email, run one constant-work scrypt verification (dummy
-  hash on a miss, so timing does not reveal whether the email exists) → issue a JWT.
+- **Login**: normalize the email (trim + lowercase), look up, run one constant-work
+  scrypt verification (dummy hash on a miss, so timing does not reveal whether the
+  email exists) → issue a JWT.
+- **Registration enumeration (accepted tradeoff):** `POST /auth/register` returns a
+  distinct `409` for an already-registered email — this leaks existence, unlike the
+  login path. We keep it for UX and rely on `authLimiter` (20 req / 15 min) to
+  throttle enumeration; make register responses generic if strict anti-enumeration
+  is required.
 - **Tokens** (`utils/token`): HS256 over `JWT_SECRET`, 7-day expiry. In production
   a missing `JWT_SECRET` fails closed; in dev a warned fallback is used.
 - **`requireAuth`** middleware verifies the `Authorization: Bearer <token>` header

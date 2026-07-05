@@ -17,7 +17,9 @@ const leaderboardService = {
   // account starts at STARTING_CAPITAL with no deposits, equity order equals ROI
   // order — we rank by equity and derive ROI for display.
   async getLeaderboard({ limit } = {}) {
-    const n = Number(limit ?? DEFAULT_LIMIT);
+    // Treat an omitted OR empty (?limit=) param as the default rather than 0.
+    const raw = limit === undefined || limit === null || limit === '' ? DEFAULT_LIMIT : limit;
+    const n = Number(raw);
     if (!Number.isInteger(n) || n < 1 || n > MAX_LIMIT) {
       throw new AppError(`limit must be an integer between 1 and ${MAX_LIMIT}.`, 400);
     }
