@@ -19,7 +19,10 @@ const money = (value) => new Decimal(value).toFixed(SCALE);
 // business shortfall (caller decides: MARKET throws 422, LIMIT marks REJECTED) and
 // throws only on true errors (missing wallet). Does not touch the order/ledger.
 async function settleFill(client, { userId, assetId, side, qty, price }) {
-  const grossAmount = new Decimal(price).times(qty);
+  // Quantize to the 4-dp money scale up front so the wallet debit/credit and the
+  // ledger row are computed from the exact same value (keeps sum(ledger) ==
+  // wallet delta; qty is already quantized by the callers).
+  const grossAmount = new Decimal(money(new Decimal(price).times(qty)));
 
   const wallet = await walletRepository.findByUserIdForUpdate(userId, client);
   if (!wallet) throw new AppError('Wallet not found for this user.', 404);
@@ -98,6 +101,7 @@ const orderService = {
     } catch (e) {
       throw new AppError('quantity must be a number.', 400);
     }
+    qty = new Decimal(money(qty)); // quantize to 4 dp so stored shares == cash charged
     if (qty.lte(0)) {
       throw new AppError('quantity must be greater than zero.', 400);
     }
@@ -113,7 +117,7 @@ const orderService = {
       const priceRaw = await assetRepository.getPrice(asset.id, client);
       if (priceRaw === null) throw new AppError('No market price available for this asset.', 422);
       const price = new Decimal(priceRaw);
-      const grossAmount = price.times(qty); // total cash value of the trade
+      const grossAmount = new Decimal(money(price.times(qty))); // 4 dp cash value of the trade
 
       // Wallet lock + funds/holdings check + position/wallet mutations happen here.
       const result = await settleFill(client, {
@@ -180,6 +184,7 @@ const orderService = {
     } catch (e) {
       throw new AppError('quantity must be a number.', 400);
     }
+    qty = new Decimal(money(qty)); // quantize to 4 dp
     if (qty.lte(0)) throw new AppError('quantity must be greater than zero.', 400);
 
     if (targetPrice === undefined || targetPrice === null || targetPrice === '') {
@@ -191,6 +196,7 @@ const orderService = {
     } catch (e) {
       throw new AppError('targetPrice must be a number.', 400);
     }
+    target = new Decimal(money(target)); // quantize to 4 dp
     if (target.lte(0)) throw new AppError('targetPrice must be greater than zero.', 400);
 
     return withTransaction(async (client) => {
@@ -219,14 +225,23 @@ const orderService = {
   // re-checks it is still PENDING and still crossed at the current market price
   // (guards against a concurrent fill/cancel), then settles at target_price.
   // Returns FILLED, REJECTED (shortfall) or SKIPPED (no longer eligible).
-  async fillLimitOrder(orderId) {
+  async fillLimitOrder(orderId, referencePrice = null) {
     return withTransaction(async (client) => {
       const order = await orderRepository.findByIdForUpdate(orderId, client);
       if (!order || order.status !== 'PENDING' || order.order_type !== 'LIMIT') return 'SKIPPED';
 
-      const priceRaw = await assetRepository.getPrice(order.asset_id, client);
-      if (priceRaw === null) return 'SKIPPED';
-      const price = new Decimal(priceRaw);
+      // Decide crossing against the triggering tick price when the matcher supplies
+      // it; fall back to the latest stored price for standalone calls. Re-reading
+      // market_prices can lag the tick that triggered this fill (the price write is
+      // not awaited before matching), which would spuriously SKIP a crossed order.
+      let price;
+      if (referencePrice !== null && referencePrice !== undefined) {
+        price = new Decimal(referencePrice);
+      } else {
+        const priceRaw = await assetRepository.getPrice(order.asset_id, client);
+        if (priceRaw === null) return 'SKIPPED';
+        price = new Decimal(priceRaw);
+      }
       const target = new Decimal(order.target_price);
       const crossed = order.side === 'BUY' ? price.lte(target) : price.gte(target);
       if (!crossed) return 'SKIPPED';
@@ -272,7 +287,7 @@ const orderService = {
         const crossed = o.side === 'BUY' ? p.lte(target) : p.gte(target);
         if (!crossed) continue;
         try {
-          const outcome = await orderService.fillLimitOrder(o.id);
+          const outcome = await orderService.fillLimitOrder(o.id, p);
           if (outcome === 'FILLED') filled += 1;
           else if (outcome === 'REJECTED') rejected += 1;
         } catch (err) {
