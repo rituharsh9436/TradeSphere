@@ -33,3 +33,5 @@ build/
 
 # IDE
 .vscode/
+.claude/
+.superpowers/
