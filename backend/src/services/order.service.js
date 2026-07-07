@@ -71,17 +71,32 @@ async function settleFill(client, { userId, assetId, side, qty, price }) {
 
 const orderService = {
   // Single entry point for placing an order from any surface. Normalizes and
-  // validates orderType, dispatches to the MARKET/LIMIT executor, and returns the
-  // response `data` shape (LIMIT is wrapped as { order } since it only rests).
-  // Both /api/orders and /api/me/orders delegate here so the two never drift.
-  async place({ userId, symbol, side, quantity, orderType, targetPrice }) {
+  // validates orderType, dispatches to the MARKET/LIMIT/ADVANCED executor, and
+  // returns the response `data` shape (LIMIT/ADVANCED are wrapped as { order }
+  // since they only rest). Both /api/orders and /api/me/orders delegate here so
+  // the two never drift.
+  async place({
+    userId, symbol, side, quantity, orderType, targetPrice,
+    advancedType, triggerPrice, trailAmount, trailPercent, timeInForce,
+  }) {
     const type = orderType ? String(orderType).toUpperCase() : 'MARKET';
-    if (!['MARKET', 'LIMIT'].includes(type)) {
-      throw new AppError('orderType must be MARKET or LIMIT.', 400);
+    if (!['MARKET', 'LIMIT', 'ADVANCED'].includes(type)) {
+      throw new AppError('orderType must be MARKET, LIMIT, or ADVANCED.', 400);
     }
-    return type === 'LIMIT'
-      ? { order: await orderService.placeLimitOrder({ userId, symbol, side, quantity, targetPrice }) }
-      : orderService.placeMarketOrder({ userId, symbol, side, quantity });
+    if (type === 'LIMIT') {
+      return {
+        order: await orderService.placeLimitOrder({ userId, symbol, side, quantity, targetPrice }),
+      };
+    }
+    if (type === 'ADVANCED') {
+      return {
+        order: await orderService.placeAdvancedOrder({
+          userId, symbol, side, quantity,
+          advancedType, triggerPrice, trailAmount, trailPercent, timeInForce,
+        }),
+      };
+    }
+    return orderService.placeMarketOrder({ userId, symbol, side, quantity });
   },
 
   // Executes a MARKET order immediately at the current market price. The entire
@@ -215,6 +230,163 @@ const orderService = {
           quantity: money(qty),
           targetPrice: money(target),
           status: 'PENDING',
+        },
+        client
+      );
+    });
+  },
+
+  // Places a resting ADVANCED order (status PENDING). Like LIMIT it does not
+  // touch the wallet or positions; the matcher fills it later when the trigger
+  // condition is crossed. Validation enforces the spec rules for each
+  // advanced_type so bad orders are rejected client-side at /api/orders.
+  async placeAdvancedOrder({
+    userId, symbol, side, quantity,
+    advancedType, triggerPrice, trailAmount, trailPercent, timeInForce,
+  }) {
+    if (!userId || !symbol || !side || quantity === undefined) {
+      throw new AppError('userId, symbol, side and quantity are required.', 400);
+    }
+    const normalizedSide = String(side).toUpperCase();
+    if (!['BUY', 'SELL'].includes(normalizedSide)) {
+      throw new AppError('side must be BUY or SELL.', 400);
+    }
+    let qty;
+    try {
+      qty = new Decimal(quantity);
+    } catch (e) {
+      throw new AppError('quantity must be a number.', 400);
+    }
+    qty = new Decimal(money(qty));
+    if (qty.lte(0)) throw new AppError('quantity must be greater than zero.', 400);
+
+    if (!advancedType) {
+      throw new AppError('advancedType is required for an ADVANCED order.', 400);
+    }
+    const normalizedAdvancedType = String(advancedType).toUpperCase();
+    if (!['STOP_LOSS', 'TAKE_PROFIT', 'TRAILING_STOP'].includes(normalizedAdvancedType)) {
+      throw new AppError('advancedType must be STOP_LOSS, TAKE_PROFIT, or TRAILING_STOP.', 400);
+    }
+
+    let tif = timeInForce ? String(timeInForce).toUpperCase() : 'DAY';
+    if (!['DAY', 'GTC'].includes(tif)) {
+      throw new AppError('timeInForce must be DAY or GTC.', 400);
+    }
+
+    // Per-type numeric fields. STOP_LOSS and TAKE_PROFIT need a numeric
+    // trigger_price; TRAILING_STOP uses exactly one of trail_amount /
+    // trail_percent (the other may be null).
+    let trigger = null;
+    if (normalizedAdvancedType === 'STOP_LOSS' || normalizedAdvancedType === 'TAKE_PROFIT') {
+      if (triggerPrice === undefined || triggerPrice === null || triggerPrice === '') {
+        throw new AppError('triggerPrice is required for STOP_LOSS and TAKE_PROFIT orders.', 400);
+      }
+      try {
+        trigger = new Decimal(triggerPrice);
+      } catch (e) {
+        throw new AppError('triggerPrice must be a number.', 400);
+      }
+      trigger = new Decimal(money(trigger));
+      if (trigger.lte(0)) throw new AppError('triggerPrice must be greater than zero.', 400);
+    }
+
+    let parsedTrailAmount = null;
+    let parsedTrailPercent = null;
+    if (normalizedAdvancedType === 'TRAILING_STOP') {
+      const hasAmount = trailAmount !== undefined && trailAmount !== null && trailAmount !== '';
+      const hasPercent = trailPercent !== undefined && trailPercent !== null && trailPercent !== '';
+      if (!hasAmount && !hasPercent) {
+        throw new AppError('TRAILING_STOP requires trail_amount or trail_percent.', 400);
+      }
+      if (hasAmount && hasPercent) {
+        throw new AppError('TRAILING_STOP accepts only one of trail_amount or trail_percent.', 400);
+      }
+      if (hasAmount) {
+        let amount;
+        try {
+          amount = new Decimal(trailAmount);
+        } catch (e) {
+          throw new AppError('trail_amount must be a number.', 400);
+        }
+        if (amount.lte(0)) throw new AppError('trail_amount must be greater than zero.', 400);
+        parsedTrailAmount = money(amount);
+      }
+      if (hasPercent) {
+        let percent;
+        try {
+          percent = new Decimal(trailPercent);
+        } catch (e) {
+          throw new AppError('trail_percent must be a number.', 400);
+        }
+        if (percent.lte(0) || percent.gte(100)) {
+          throw new AppError('trail_percent must be between 0 and 100 (exclusive).', 400);
+        }
+        parsedTrailPercent = percent.toFixed(2);
+      }
+    }
+
+    return withTransaction(async (client) => {
+      const user = await userRepository.findById(userId, client);
+      if (!user) throw new AppError('User not found.', 404);
+
+      const asset = await assetRepository.findBySymbol(symbol, client);
+      if (!asset || !asset.is_active) throw new AppError('Asset not found or inactive.', 404);
+
+      // Need a current price for both the directional validation rules
+      // (trigger vs spot) and to seed the trailing stop high-water-mark.
+      const priceRaw = await assetRepository.getPrice(asset.id, client);
+      if (priceRaw === null) {
+        throw new AppError('No market price available for this asset.', 422);
+      }
+      const currentPrice = new Decimal(priceRaw);
+
+      // Directional validation. For SELL the trigger sits on the side of the
+      // current price that makes a protective or profit-taking exit sensible;
+      // for BUY we mirror it. TRAILING_STOP gets only the positive-amount
+      // check above (its trigger migrates with the high-water-mark, so a
+      // static cross-check would be wrong).
+      if (normalizedSide === 'SELL') {
+        if (normalizedAdvancedType === 'STOP_LOSS' && trigger.gte(currentPrice)) {
+          throw new AppError('Stop-loss trigger must be below current market price for SELL.', 400);
+        }
+        if (normalizedAdvancedType === 'TAKE_PROFIT' && trigger.lte(currentPrice)) {
+          throw new AppError('Take-profit trigger must be above current market price for SELL.', 400);
+        }
+      }
+      if (normalizedSide === 'BUY') {
+        if (normalizedAdvancedType === 'STOP_LOSS' && trigger.lte(currentPrice)) {
+          throw new AppError('Stop-loss trigger must be above current market price for BUY.', 400);
+        }
+        if (normalizedAdvancedType === 'TAKE_PROFIT' && trigger.gte(currentPrice)) {
+          throw new AppError('Take-profit trigger must be below current market price for BUY.', 400);
+        }
+      }
+
+      // For trailing stops the seed trigger_price is undefined at creation;
+      // the matcher computes it on each favorable tick. For STOP_LOSS and
+      // TAKE_PROFIT the trigger_price is the literal threshold.
+      let initialTrigger =
+        normalizedAdvancedType === 'TRAILING_STOP' ? null : trigger.toFixed(SCALE);
+
+      const advancedParams = {
+        advanced_type: normalizedAdvancedType,
+        trigger_price: initialTrigger,
+        trail_amount: parsedTrailAmount,
+        trail_percent: parsedTrailPercent,
+        high_water_mark: money(currentPrice),
+        time_in_force: tif,
+      };
+
+      return orderRepository.create(
+        {
+          userId,
+          assetId: asset.id,
+          orderType: 'ADVANCED',
+          side: normalizedSide,
+          quantity: money(qty),
+          targetPrice: null,
+          status: 'PENDING',
+          advancedParams,
         },
         client
       );

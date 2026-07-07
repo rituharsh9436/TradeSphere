@@ -2,11 +2,19 @@ const orderService = require('../services/order.service');
 const catchAsync = require('../utils/catchAsync');
 
 const orderController = {
-  // POST /api/orders  { userId, symbol, side, quantity, orderType?, targetPrice? }
-  // orderType defaults to MARKET (immediate fill); LIMIT rests as PENDING.
+  // POST /api/orders  { userId, symbol, side, quantity, orderType?, targetPrice?,
+  //                       advancedType?, triggerPrice?, trailAmount?, trailPercent?, timeInForce? }
+  // orderType defaults to MARKET (immediate fill); LIMIT rests as PENDING; ADVANCED
+  // rests as PENDING with advanced_orders row seeded.
   place: catchAsync(async (req, res) => {
-    const { userId, symbol, side, quantity, orderType, targetPrice } = req.body;
-    const data = await orderService.place({ userId, symbol, side, quantity, orderType, targetPrice });
+    const {
+      userId, symbol, side, quantity, orderType, targetPrice,
+      advancedType, triggerPrice, trailAmount, trailPercent, timeInForce,
+    } = req.body;
+    const data = await orderService.place({
+      userId, symbol, side, quantity, orderType, targetPrice,
+      advancedType, triggerPrice, trailAmount, trailPercent, timeInForce,
+    });
     res.status(201).json({ status: 'success', data });
   }),
 
