@@ -38,6 +38,12 @@
         "value": "#ffffff",
         "reason": "White text on signal buttons",
         "createdAt": "2026-07-07T21:37:08.755Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#2a2d34",
+        "reason": "Chart grid lines",
+        "createdAt": "2026-07-07T22:08:07.499Z"
       }
     ]
   }

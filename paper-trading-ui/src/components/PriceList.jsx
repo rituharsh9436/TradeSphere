@@ -15,22 +15,22 @@ function PriceList({ prices, selected, onSelect }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {symbols.map((symbol) => (
         <button
           key={symbol}
           type="button"
           onClick={() => onSelect(symbol)}
-          className={`flex items-center justify-between gap-4 rounded-md border px-3 py-2 text-left transition-colors ${
+          className={`group flex items-center justify-between gap-4 rounded-md border px-3 py-2.5 text-left transition-colors ${
             symbol === selected
               ? "border-accent bg-surface-2 text-ink"
-              : "border-line bg-plane text-ink-secondary hover:border-muted hover:text-ink"
+              : "border-transparent bg-plane text-ink-secondary hover:border-line hover:bg-surface-hover hover:text-ink"
           }`}
         >
           <span>
             <span className="block font-semibold">{symbol}</span>
             {prices[symbol].ts && (
-              <span className="mt-1 flex items-center gap-1 text-xs text-muted">
+              <span className={`mt-0.5 flex items-center gap-1 text-xs transition-colors ${symbol === selected ? "text-ink-secondary" : "text-muted group-hover:text-ink-secondary"}`}>
                 <Clock3 className="h-3 w-3" aria-hidden="true" />
                 {new Date(prices[symbol].ts).toLocaleTimeString()}
               </span>

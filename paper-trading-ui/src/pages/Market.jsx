@@ -81,14 +81,14 @@ function Market() {
           <h1 className="text-2xl font-semibold">Market</h1>
           <p className="text-sm text-muted">Live prices, candles, and order entry.</p>
         </div>
-        <div className="grid gap-2 rounded-md border border-line bg-surface px-4 py-2 sm:min-w-72">
+        <div className="grid gap-2 rounded-md border border-line bg-surface-2 px-4 py-3 sm:min-w-72 shadow-sm">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm text-muted">{symbol}</span>
+            <span className="text-sm font-medium text-muted uppercase tracking-wider">{symbol}</span>
             <StatusBadge tone={isLive ? "LIVE" : "PENDING"}>{isLive ? "Live" : "Reconnecting"}</StatusBadge>
           </div>
           <div className="flex items-end justify-between gap-4">
-            <span className="tnum text-2xl font-semibold">{money(livePrice)}</span>
-            <span className="text-xs text-muted">{liveTick?.ts ? new Date(liveTick.ts).toLocaleTimeString() : "Awaiting tick"}</span>
+            <span className="tnum text-3xl font-bold tracking-tight text-ink">{money(livePrice)}</span>
+            <span className="text-xs text-muted mb-1">{liveTick?.ts ? new Date(liveTick.ts).toLocaleTimeString() : "Awaiting tick"}</span>
           </div>
         </div>
       </div>
@@ -96,7 +96,7 @@ function Market() {
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
         <aside className="card p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">Symbols</h2>
+            <h2 className="font-semibold text-ink-secondary">Symbols</h2>
             {isLive ? <Radio className="h-4 w-4 text-gain" aria-hidden="true" /> : <WifiOff className="h-4 w-4 text-warning" aria-hidden="true" />}
           </div>
           <PriceList prices={prices} selected={symbol} onSelect={setSymbol} />
@@ -107,7 +107,7 @@ function Market() {
             <div>
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-accent" aria-hidden="true" />
-                <h2 className="font-semibold">{symbol} Candles</h2>
+                <h2 className="font-semibold text-ink-secondary">{symbol} Candles</h2>
               </div>
               <p className="mt-1 text-sm text-muted">{candles.length} bars loaded</p>
             </div>
@@ -118,7 +118,7 @@ function Market() {
         </section>
 
         <aside className="card p-4 lg:sticky lg:top-20 lg:self-start">
-          <h2 className="mb-3 font-semibold">Trade</h2>
+          <h2 className="mb-4 font-semibold text-ink-secondary">Trade</h2>
           <TradePanel symbol={symbol} price={livePrice} portfolio={portfolio} onOrderPlaced={refreshPortfolio} />
         </aside>
       </div>
