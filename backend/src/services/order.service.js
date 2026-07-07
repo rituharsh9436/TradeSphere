@@ -294,10 +294,51 @@ const orderService = {
           console.error(`Limit fill failed for order ${o.id}:`, err.message);
         }
       }
+
+      // Also evaluate advanced orders
+      const { evaluateAdvancedOrders } = require('./advancedOrderMatcher');
+      await evaluateAdvancedOrders(asset.id, price);
+
     } catch (err) {
       console.error(`Limit matcher failed for ${symbol}:`, err.message);
     }
     return { filled, rejected };
+  },
+
+  // Fills a triggered advanced order as a MARKET order at the current market price.
+  // Re-uses settleFill with the current market price, exactly like placeMarketOrder.
+  // Locks the order row and verifies it is still PENDING and ADVANCED.
+  async fillTriggeredOrder(orderId, referencePrice) {
+    return withTransaction(async (client) => {
+      const order = await orderRepository.findByIdForUpdate(orderId, client);
+      if (!order || order.status !== 'PENDING' || order.order_type !== 'ADVANCED') return 'SKIPPED';
+
+      const price = new Decimal(referencePrice);
+      const qty = new Decimal(order.quantity);
+      const grossAmount = new Decimal(money(price.times(qty)));
+
+      const result = await settleFill(client, {
+        userId: order.user_id, assetId: order.asset_id, side: order.side, qty, price,
+      });
+
+      if (!result.ok) {
+        await orderRepository.updateStatus(orderId, 'REJECTED', client);
+        return 'REJECTED';
+      }
+
+      await orderRepository.updateStatus(orderId, 'FILLED', client);
+      await transactionRepository.create(
+        {
+          userId: order.user_id,
+          orderId,
+          transactionType: order.side,
+          amount: money(grossAmount),
+          pricePerShare: money(price),
+        },
+        client
+      );
+      return 'FILLED';
+    });
   },
 
   // Cancels a still-PENDING order. Locks the row and verifies ownership + status

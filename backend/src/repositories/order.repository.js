@@ -93,6 +93,29 @@ const orderRepository = {
     return rows[0] || null;
   },
 
+  // Fetch pending advanced orders with their advanced parameters joined
+  async findPendingAdvancedByAsset(assetId, client = pool) {
+    const { rows } = await client.query(
+      `SELECT o.id, o.user_id, o.asset_id, o.side, o.quantity, o.status,
+              a.advanced_type, a.trigger_price, a.trail_amount, a.trail_percent, a.high_water_mark, a.time_in_force
+       FROM orders o
+       JOIN advanced_orders a ON o.id = a.order_id
+       WHERE o.asset_id = $1 AND o.status = 'PENDING' AND o.order_type = 'ADVANCED'`,
+      [assetId]
+    );
+    return rows;
+  },
+
+  // Update trailing stop HWM and trigger price
+  async updateTrailingStop(orderId, hwm, triggerPrice, client = pool) {
+    await client.query(
+      `UPDATE advanced_orders
+       SET high_water_mark = $2, trigger_price = $3
+       WHERE order_id = $1`,
+      [orderId, hwm, triggerPrice]
+    );
+  },
+
   async listByUser(userId, client = pool) {
     const { rows } = await client.query(
       `SELECT o.id, o.order_type, o.side, o.quantity, o.target_price, o.status,
