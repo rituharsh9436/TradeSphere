@@ -1,4 +1,4 @@
-import { deltaClass, money, percent, qty } from "../lib/format";
+import { deltaClass, money, percent, qty, signedMoney } from "../lib/format";
 
 function HoldingsTable({ positions }) {
   if (!positions?.length) {
@@ -33,7 +33,7 @@ function HoldingsTable({ positions }) {
               </div>
               <div>
                 <div className="text-xs uppercase text-muted">P/L</div>
-                <div className={`tnum mt-1 font-semibold ${deltaClass(p.unrealizedPnl)}`}>{money(p.unrealizedPnl)}</div>
+                <div className={`tnum mt-1 font-semibold ${deltaClass(p.unrealizedPnl)}`}>{signedMoney(p.unrealizedPnl)}</div>
               </div>
             </div>
           </article>
@@ -62,7 +62,7 @@ function HoldingsTable({ positions }) {
                 <td className="tnum py-3 pr-4 text-right text-ink-secondary">{money(p.currentPrice)}</td>
                 <td className="tnum py-3 pr-4 text-right text-ink-secondary">{money(p.marketValue)}</td>
                 <td className={`tnum py-3 pr-4 text-right font-semibold ${deltaClass(p.unrealizedPnl)}`}>
-                  {money(p.unrealizedPnl)}
+                  {signedMoney(p.unrealizedPnl)}
                 </td>
                 <td className={`tnum py-3 text-right font-semibold ${deltaClass(p.unrealizedPnlPct)}`}>
                   {percent(p.unrealizedPnlPct)}

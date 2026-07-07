@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.22)",
+        "reason": "Drop shadow alpha",
+        "createdAt": "2026-07-07T21:36:45.407Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#494d58",
+        "reason": "Input border idle state",
+        "createdAt": "2026-07-07T21:36:50.061Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#41454f",
+        "reason": "Input background focus state",
+        "createdAt": "2026-07-07T21:36:54.740Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#1f2128",
+        "reason": "Dark text on primary button",
+        "createdAt": "2026-07-07T21:36:59.278Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fff",
+        "reason": "White text on signal buttons",
+        "createdAt": "2026-07-07T21:37:04.061Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ffffff",
+        "reason": "White text on signal buttons",
+        "createdAt": "2026-07-07T21:37:08.755Z"
+      }
+    ]
+  }
+}

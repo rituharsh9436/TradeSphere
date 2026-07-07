@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, BarChart3, PlayCircle } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, BarChart3, PlayCircle } from "lucide-react";
 import HoldingsTable from "../components/HoldingsTable";
 import Skeleton, { StatSkeleton } from "../components/Skeleton";
 import { getPortfolio } from "../services/marketApi";
-import { deltaClass, money, percent } from "../lib/format";
+import { deltaClass, money, percent, signedMoney } from "../lib/format";
 
 function Stat({ label, value, tone }) {
   return (
@@ -76,17 +76,27 @@ function Dashboard() {
           <p className="text-sm text-muted">Portfolio, cash, and open-position performance.</p>
         </div>
         {portfolio?.unpricedSymbols?.length > 0 && (
-          <span className="rounded-md border border-warning/60 px-3 py-1 text-sm text-warning">
+          <span
+            role="status"
+            className="inline-flex items-center gap-1.5 rounded-md border border-warning/60 px-3 py-1 text-sm text-warning"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
             Unpriced: {portfolio.unpricedSymbols.join(", ")}
           </span>
         )}
       </div>
 
-      {error && <div className="mb-4 rounded-md border border-loss/50 p-3 text-sm text-loss">{error}</div>}
+      {error && (
+        <div role="alert" className="mb-4 flex items-center gap-2 rounded-md border border-loss/50 p-3 text-sm text-loss">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
+        </div>
+      )}
 
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-busy={loading}>
         {loading ? (
           <>
+            <span className="sr-only" role="status">Loading portfolio…</span>
             <StatSkeleton />
             <StatSkeleton />
             <StatSkeleton />
@@ -132,7 +142,7 @@ function Dashboard() {
                 <div className="flex justify-between gap-4">
                   <span className="text-muted">Unrealized P/L</span>
                   <span className={`tnum font-semibold ${deltaClass(portfolio?.totalUnrealizedPnl)}`}>
-                    {money(portfolio?.totalUnrealizedPnl)}
+                    {signedMoney(portfolio?.totalUnrealizedPnl)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">
