@@ -113,15 +113,15 @@ function Profile() {
           <>
             <div className="card p-4">
               <div className="text-xs uppercase text-muted">Username</div>
-              <div className="mt-2 font-semibold text-ink">{user?.username}</div>
+              <div className="mt-2 text-2xl font-semibold text-ink">{user?.username}</div>
             </div>
             <div className="card p-4">
               <div className="text-xs uppercase text-muted">Cash</div>
-              <div className="tnum mt-2 text-xl font-semibold">{money(portfolio?.cashBalance)}</div>
+              <div className="tnum mt-2 text-2xl font-semibold">{money(portfolio?.cashBalance)}</div>
             </div>
             <div className="card p-4">
               <div className="text-xs uppercase text-muted">Pending Orders</div>
-              <div className="tnum mt-2 text-xl font-semibold">{pending.length}</div>
+              <div className="tnum mt-2 text-2xl font-semibold">{pending.length}</div>
             </div>
           </>
         )}
@@ -179,20 +179,20 @@ function Profile() {
           <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead className="sticky top-0 bg-surface">
               <tr className="border-b border-line text-left text-xs uppercase text-muted">
-                <th className="py-2 pr-4 font-semibold">Symbol</th>
+                <th className="py-2 pr-4 pl-4 font-semibold">Symbol</th>
                 <th className="py-2 pr-4 font-semibold">Type</th>
                 <th className="py-2 pr-4 font-semibold">Side</th>
                 <th className="py-2 pr-4 text-right font-semibold">Qty</th>
                 <th className="py-2 pr-4 text-right font-semibold">Target</th>
                 <th className="py-2 pr-4 font-semibold">Status</th>
                 <th className="py-2 pr-4 font-semibold">Created</th>
-                <th className="py-2 text-right font-semibold">Action</th>
+                <th className="py-2 pr-4 text-right font-semibold">Action</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id} className="table-row border-b border-line/70 last:border-0">
-                  <td className="py-3 pr-4 font-semibold">{order.symbol}</td>
+                  <td className="py-3 pr-4 pl-4 font-semibold">{order.symbol}</td>
                   <td className="py-3 pr-4 text-ink-secondary">{order.order_type}</td>
                   <td className="py-3 pr-4">
                     <StatusBadge>{order.side}</StatusBadge>
@@ -201,7 +201,7 @@ function Profile() {
                   <td className="tnum py-3 pr-4 text-right text-ink-secondary">{money(order.target_price)}</td>
                   <td className="py-3 pr-4"><StatusBadge>{order.status}</StatusBadge></td>
                   <td className="py-3 pr-4 text-muted">{new Date(order.created_at).toLocaleString()}</td>
-                  <td className="py-3 text-right">
+                  <td className="py-3 pr-4 text-right">
                     {order.status === "PENDING" ? (
                       <button
                         type="button"

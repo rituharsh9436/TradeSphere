@@ -88,27 +88,27 @@ function Leaderboard() {
         </div>
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead className="sticky top-0 bg-surface-2">
-              <tr className="border-b border-line bg-surface-2 text-left text-xs uppercase text-muted">
-                <th className="px-4 py-3 font-semibold">Rank</th>
-                <th className="px-4 py-3 font-semibold">Trader</th>
-                <th className="px-4 py-3 text-right font-semibold">Equity</th>
-                <th className="px-4 py-3 text-right font-semibold">ROI</th>
-                <th className="px-4 py-3 text-right font-semibold">Pricing</th>
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-line text-left text-xs uppercase text-muted">
+                <th className="py-2 pr-4 pl-4 font-semibold">Rank</th>
+                <th className="py-2 pr-4 font-semibold">Trader</th>
+                <th className="py-2 pr-4 text-right font-semibold">Equity</th>
+                <th className="py-2 pr-4 text-right font-semibold">ROI</th>
+                <th className="py-2 pr-4 text-right font-semibold">Pricing</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.userId} className="table-row border-b border-line/70 last:border-0">
-                  <td className="tnum px-4 py-3 font-semibold text-ink">#{entry.rank}</td>
-                  <td className="px-4 py-3 text-ink-secondary">{entry.username}</td>
-                  <td className="tnum px-4 py-3 text-right font-semibold text-ink">
+                  <td className="tnum py-3 pr-4 pl-4 font-semibold text-ink">#{entry.rank}</td>
+                  <td className="py-3 pr-4 text-ink-secondary">{entry.username}</td>
+                  <td className="tnum py-3 pr-4 text-right font-semibold text-ink">
                     {money(entry.totalEquity)}
                   </td>
-                  <td className={`tnum px-4 py-3 text-right font-semibold ${deltaClass(entry.roiPct)}`}>
+                  <td className={`tnum py-3 pr-4 text-right font-semibold ${deltaClass(entry.roiPct)}`}>
                     {percent(entry.roiPct)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="py-3 pr-4 text-right">
                     <StatusBadge tone={entry.hasUnpricedHoldings ? "UNPRICED" : "LIVE"}>
                       {entry.hasUnpricedHoldings ? "Unpriced" : "Live"}
                     </StatusBadge>
