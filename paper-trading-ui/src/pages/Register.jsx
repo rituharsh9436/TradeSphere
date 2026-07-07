@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus } from "lucide-react";
+import { UserPlus, AlertTriangle } from "lucide-react";
 import AuthShell from "../components/AuthShell";
 import { useAuth } from "../context/AuthContext";
 
@@ -27,7 +27,7 @@ function Register() {
 
   return (
     <AuthShell
-      eyebrow="Start with virtual $100,000"
+      eyebrow="Virtual $100,000 Portfolio"
       title="Create account"
       footer={
         <p className="mt-4 text-center text-sm text-muted">
@@ -38,28 +38,31 @@ function Register() {
         </p>
       }
     >
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="text-sm">
-          <span className="mb-1 block text-muted">Username</span>
+          <span className="mb-1.5 block font-medium text-ink-secondary">Username</span>
           <input
             className="field"
+            type="text"
             value={form.username}
             required
             onChange={(e) => setForm({ ...form, username: e.target.value })}
+            disabled={busy}
           />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-muted">Email</span>
+          <span className="mb-1.5 block font-medium text-ink-secondary">Email</span>
           <input
             className="field"
             type="email"
             value={form.email}
             required
             onChange={(e) => setForm({ ...form, email: e.target.value })}
+            disabled={busy}
           />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-muted">Password</span>
+          <span className="mb-1.5 block font-medium text-ink-secondary">Password</span>
           <input
             className="field"
             type="password"
@@ -67,14 +70,20 @@ function Register() {
             required
             minLength={8}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+            disabled={busy}
           />
         </label>
-        <button type="submit" className="btn btn-primary mt-1" disabled={busy}>
-          <UserPlus className="h-4 w-4" aria-hidden="true" />
+        <button type="submit" className="btn btn-primary mt-2 group" disabled={busy}>
+          <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" aria-hidden="true" />
           {busy ? "Creating..." : "Create account"}
         </button>
       </form>
-      {error && <p className="mt-3 text-sm text-loss">{error}</p>}
+      {error && (
+        <div role="alert" className="mt-4 flex items-center gap-2 rounded-md border border-loss/50 bg-loss/10 p-3 text-sm text-loss">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
+        </div>
+      )}
     </AuthShell>
   );
 }

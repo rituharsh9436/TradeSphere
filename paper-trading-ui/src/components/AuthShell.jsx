@@ -26,7 +26,7 @@ function AuthShell({ eyebrow, title, children, footer }) {
           ].map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.label} className="rounded-md border border-line bg-plane p-4">
+              <div key={item.label} className="rounded-md border border-line bg-plane p-4 transition-colors hover:bg-surface-2">
                 <Icon className="h-5 w-5 text-accent" aria-hidden="true" />
                 <div className="mt-4 text-xs uppercase text-muted">{item.label}</div>
                 <div className="mt-1 font-semibold">{item.value}</div>
