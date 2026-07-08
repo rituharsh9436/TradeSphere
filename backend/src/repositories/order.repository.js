@@ -106,14 +106,25 @@ const orderRepository = {
     return rows;
   },
 
-  // Update trailing stop HWM and trigger price
-  async updateTrailingStop(orderId, hwm, triggerPrice, client = pool) {
-    await client.query(
+  // Atomic fade-in for the trailing stop HWM. For SELL the HWM only ratchets
+  // up; for BUY it only ratchets down. The matcher supplies the new value plus
+  // the side, so two parallel ticks can't both write a stale HWM — the smaller
+  // (or older) of the two updates finds zero rows and is effectively a no-op.
+  // Returns the rowcount so callers can skip the per-tick trigger recompute
+  // when the UPDATE was a no-op.
+  async ratchetTrailingStop(
+    { orderId, newHwm, newTrigger, side },
+    client = pool
+  ) {
+    const cmp = side === 'BUY' ? '<' : '>';
+    const { rowCount } = await client.query(
       `UPDATE advanced_orders
        SET high_water_mark = $2, trigger_price = $3
-       WHERE order_id = $1`,
-      [orderId, hwm, triggerPrice]
+       WHERE order_id = $1
+         AND (high_water_mark IS NULL OR high_water_mark ${cmp} $2)`,
+      [orderId, newHwm, newTrigger]
     );
+    return rowCount;
   },
 
   async listByUser(userId, client = pool) {
