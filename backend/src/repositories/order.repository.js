@@ -130,9 +130,11 @@ const orderRepository = {
   async listByUser(userId, client = pool) {
     const { rows } = await client.query(
       `SELECT o.id, o.order_type, o.side, o.quantity, o.target_price, o.status,
-              o.created_at, a.symbol
+              o.created_at, a.symbol,
+              ad.advanced_type, ad.trigger_price, ad.trail_amount, ad.trail_percent, ad.high_water_mark, ad.time_in_force
        FROM orders o
        JOIN assets a ON a.id = o.asset_id
+       LEFT JOIN advanced_orders ad ON ad.order_id = o.id
        WHERE o.user_id = $1
        ORDER BY o.created_at DESC`,
       [userId]

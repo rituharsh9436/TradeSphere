@@ -33,6 +33,21 @@ export async function placeLimitOrder({ symbol, side, quantity, targetPrice }) {
   return res.data.data;
 }
 
+export async function placeAdvancedOrder({ symbol, side, quantity, advancedType, triggerPrice, trailAmount, trailPercent, timeInForce }) {
+  const res = await api.post("/me/orders", {
+    symbol,
+    side,
+    quantity,
+    orderType: "ADVANCED",
+    advancedType,
+    triggerPrice,
+    trailAmount,
+    trailPercent,
+    timeInForce,
+  });
+  return res.data.data;
+}
+
 export async function cancelOrder(orderId) {
   const res = await api.delete(`/me/orders/${orderId}`);
   return res.data.data;

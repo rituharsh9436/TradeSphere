@@ -155,7 +155,11 @@ function Profile() {
                 </div>
                 <div>
                   <div className="text-xs uppercase text-muted">Type</div>
-                  <div className="mt-1 text-ink-secondary">{order.order_type}</div>
+                  <div className="mt-1 text-ink-secondary">
+                    {order.order_type === "ADVANCED"
+                      ? order.advanced_type.replace('_', ' ')
+                      : order.order_type}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs uppercase text-muted">Qty</div>
@@ -163,7 +167,13 @@ function Profile() {
                 </div>
                 <div>
                   <div className="text-xs uppercase text-muted">Target</div>
-                  <div className="tnum mt-1 text-ink-secondary">{money(order.target_price)}</div>
+                  <div className="tnum mt-1 text-ink-secondary">
+                    {order.order_type === "LIMIT"
+                      ? money(order.target_price)
+                      : order.order_type === "ADVANCED"
+                        ? (order.trigger_price ? money(order.trigger_price) : "Trail")
+                        : "Market"}
+                  </div>
                 </div>
               </div>
               {order.status === "PENDING" && (
@@ -193,12 +203,22 @@ function Profile() {
               {orders.map((order) => (
                 <tr key={order.id} className="table-row border-b border-line/70 last:border-0">
                   <td className="py-3 pr-4 pl-4 font-semibold">{order.symbol}</td>
-                  <td className="py-3 pr-4 text-ink-secondary">{order.order_type}</td>
+                  <td className="py-3 pr-4 text-ink-secondary">
+                    {order.order_type === "ADVANCED"
+                      ? order.advanced_type.replace('_', ' ')
+                      : order.order_type}
+                  </td>
                   <td className="py-3 pr-4">
                     <StatusBadge>{order.side}</StatusBadge>
                   </td>
                   <td className="tnum py-3 pr-4 text-right text-ink-secondary">{qty(order.quantity)}</td>
-                  <td className="tnum py-3 pr-4 text-right text-ink-secondary">{money(order.target_price)}</td>
+                  <td className="tnum py-3 pr-4 text-right text-ink-secondary">
+                    {order.order_type === "LIMIT"
+                      ? money(order.target_price)
+                      : order.order_type === "ADVANCED"
+                        ? (order.trigger_price ? money(order.trigger_price) : "Trail")
+                        : "Market"}
+                  </td>
                   <td className="py-3 pr-4"><StatusBadge>{order.status}</StatusBadge></td>
                   <td className="py-3 pr-4 text-muted">{new Date(order.created_at).toLocaleString()}</td>
                   <td className="py-3 pr-4 text-right">

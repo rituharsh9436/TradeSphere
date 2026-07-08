@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { money, qty } from "../lib/format";
-import { placeLimitOrder, placeOrder } from "../services/marketApi";
+import { placeAdvancedOrder, placeLimitOrder, placeOrder } from "../services/marketApi";
 
 const QUICK_QTY = ["1", "5", "10"];
 const PCT_QTY = [25, 50, 100];
@@ -10,13 +10,19 @@ const PCT_QTY = [25, 50, 100];
 function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
   const { user } = useAuth();
   const [side, setSide] = useState("BUY");
-  const [orderType, setOrderType] = useState("MARKET");
+  const [orderType, setOrderType] = useState("MARKET"); // "MARKET", "LIMIT", "STOP_LOSS", "TAKE_PROFIT", "TRAILING_STOP"
   const [quantity, setQuantity] = useState("1");
   const [targetPrice, setTargetPrice] = useState("");
+  const [triggerPrice, setTriggerPrice] = useState("");
+  const [trailType, setTrailType] = useState("AMOUNT"); // "AMOUNT" or "PERCENT"
+  const [trailValue, setTrailValue] = useState("");
+  const [timeInForce, setTimeInForce] = useState("DAY");
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const numericPrice = Number(orderType === "LIMIT" && targetPrice ? targetPrice : price);
+  const isLimit = orderType === "LIMIT";
+  const isAdvanced = ["STOP_LOSS", "TAKE_PROFIT", "TRAILING_STOP"].includes(orderType);
+  const numericPrice = Number((isLimit && targetPrice) ? targetPrice : price);
   const numericQuantity = Number(quantity);
   const estimatedValue = numericPrice > 0 && numericQuantity > 0 ? numericPrice * numericQuantity : 0;
   const owned = portfolio?.positions?.find((p) => p.symbol === symbol)?.quantity || 0;
@@ -37,29 +43,50 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
       setStatus({ ok: false, message: "Quantity must be greater than 0." });
       return;
     }
-    if (orderType === "LIMIT" && !(Number(targetPrice) > 0)) {
+    if (isLimit && !(Number(targetPrice) > 0)) {
       setStatus({ ok: false, message: "Limit price must be greater than 0." });
+      return;
+    }
+    if ((orderType === "STOP_LOSS" || orderType === "TAKE_PROFIT") && !(Number(triggerPrice) > 0)) {
+      setStatus({ ok: false, message: "Trigger price must be greater than 0." });
+      return;
+    }
+    if (orderType === "TRAILING_STOP" && !(Number(trailValue) > 0)) {
+      setStatus({ ok: false, message: "Trail amount/percent must be greater than 0." });
       return;
     }
 
     setBusy(true);
     setStatus(null);
     try {
-      const result =
-        orderType === "LIMIT"
-          ? await placeLimitOrder({ symbol, side, quantity: Number(quantity), targetPrice })
-          : await placeOrder({ symbol, side, quantity: Number(quantity) });
+      let result;
+      if (isLimit) {
+        result = await placeLimitOrder({ symbol, side, quantity: Number(quantity), targetPrice });
+      } else if (isAdvanced) {
+        result = await placeAdvancedOrder({
+          symbol,
+          side,
+          quantity: Number(quantity),
+          advancedType: orderType,
+          triggerPrice: orderType !== "TRAILING_STOP" ? triggerPrice : undefined,
+          trailAmount: orderType === "TRAILING_STOP" && trailType === "AMOUNT" ? trailValue : undefined,
+          trailPercent: orderType === "TRAILING_STOP" && trailType === "PERCENT" ? trailValue : undefined,
+          timeInForce,
+        });
+      } else {
+        result = await placeOrder({ symbol, side, quantity: Number(quantity) });
+      }
 
-      const nextStatus =
-        orderType === "LIMIT"
-          ? {
-              ok: true,
-              message: `${side} limit submitted for ${quantity} ${symbol} @ ${money(result.order.target_price)}`,
-            }
-          : {
-              ok: true,
-              message: `${side} ${quantity} ${symbol} filled @ ${money(result.executedPrice)}`,
-            };
+      let successMessage = "";
+      if (isLimit) {
+        successMessage = `${side} limit submitted for ${quantity} ${symbol} @ ${money(result.order.target_price)}`;
+      } else if (isAdvanced) {
+        successMessage = `${side} ${orderType.replace('_', ' ').toLowerCase()} submitted for ${quantity} ${symbol}`;
+      } else {
+        successMessage = `${side} ${quantity} ${symbol} filled @ ${money(result.executedPrice)}`;
+      }
+
+      const nextStatus = { ok: true, message: successMessage };
       setStatus(nextStatus);
       onOrderPlaced?.(nextStatus);
     } catch (err) {
@@ -108,22 +135,20 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
         </button>
       </div>
 
-      <div className="inline-flex rounded-md border border-line bg-surface-2 p-1">
-        {["MARKET", "LIMIT"].map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setOrderType(value)}
-            className={`flex-1 rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
-              orderType === value
-                ? "bg-surface-hover text-ink shadow-sm"
-                : "text-muted hover:bg-surface-3 hover:text-ink"
-            }`}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
+      <label className="text-sm">
+        <span className="mb-1.5 block font-medium text-ink-secondary">Order Type</span>
+        <select
+          className="field font-medium cursor-pointer"
+          value={orderType}
+          onChange={(e) => setOrderType(e.target.value)}
+        >
+          <option value="MARKET">Market</option>
+          <option value="LIMIT">Limit</option>
+          <option value="STOP_LOSS">Stop Loss</option>
+          <option value="TAKE_PROFIT">Take Profit</option>
+          <option value="TRAILING_STOP">Trailing Stop</option>
+        </select>
+      </label>
 
       <label className="text-sm">
         <span className="mb-1.5 block font-medium text-ink-secondary">Quantity</span>
@@ -150,9 +175,9 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
         ))}
       </div>
 
-      {orderType === "LIMIT" && (
+      {isLimit && (
         <label className="text-sm">
-          <span className="mb-1.5 block font-medium text-ink-secondary">Limit price</span>
+          <span className="mb-1.5 block font-medium text-ink-secondary">Limit Price</span>
           <input
             className="field tnum font-medium"
             type="number"
@@ -163,6 +188,70 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
             onChange={(e) => setTargetPrice(e.target.value)}
           />
         </label>
+      )}
+
+      {(orderType === "STOP_LOSS" || orderType === "TAKE_PROFIT") && (
+        <label className="text-sm">
+          <span className="mb-1.5 block font-medium text-ink-secondary">Trigger Price</span>
+          <input
+            className="field tnum font-medium"
+            type="number"
+            min="0"
+            step="any"
+            placeholder={Number(price) ? Number(price).toFixed(2) : "0.00"}
+            value={triggerPrice}
+            onChange={(e) => setTriggerPrice(e.target.value)}
+          />
+        </label>
+      )}
+
+      {orderType === "TRAILING_STOP" && (
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm">
+            <span className="mb-1.5 block font-medium text-ink-secondary">Trail Type</span>
+            <select
+              className="field font-medium cursor-pointer"
+              value={trailType}
+              onChange={(e) => setTrailType(e.target.value)}
+            >
+              <option value="AMOUNT">Amount ($)</option>
+              <option value="PERCENT">Percent (%)</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1.5 block font-medium text-ink-secondary">
+              Trail {trailType === "AMOUNT" ? "Amount" : "Percent"}
+            </span>
+            <input
+              className="field tnum font-medium"
+              type="number"
+              min="0"
+              step="any"
+              placeholder="0.00"
+              value={trailValue}
+              onChange={(e) => setTrailValue(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
+
+      {(isLimit || isAdvanced) && (
+        <div className="inline-flex rounded-md border border-line bg-surface-2 p-1">
+          {["DAY", "GTC"].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTimeInForce(value)}
+              className={`flex-1 rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                timeInForce === value
+                  ? "bg-surface-hover text-ink shadow-sm"
+                  : "text-muted hover:bg-surface-3 hover:text-ink"
+              }`}
+            >
+              {value === "DAY" ? "Day" : "GTC"}
+            </button>
+          ))}
+        </div>
       )}
 
       <div className="rounded-md border border-line bg-surface-2 p-3 text-sm">
