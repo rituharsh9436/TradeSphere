@@ -42,7 +42,7 @@ const createTables = async () => {
         user_id UUID REFERENCES users(id),
         asset_id UUID REFERENCES assets(id),
         order_type VARCHAR(20) NOT NULL
-            CHECK (order_type IN ('MARKET', 'LIMIT')),
+            CHECK (order_type IN ('MARKET', 'LIMIT', 'ADVANCED')),
         side VARCHAR(10) NOT NULL
             CHECK (side IN ('BUY', 'SELL')),
         quantity DECIMAL(15, 4) NOT NULL CHECK (quantity > 0),
@@ -51,10 +51,13 @@ const createTables = async () => {
             CHECK (status IN ('PENDING', 'FILLED', 'CANCELLED', 'REJECTED')),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        -- LIMIT orders must specify a target price; MARKET orders must not
+        -- LIMIT orders must specify a target price; MARKET orders must not;
+        -- ADVANCED orders carry their trigger in advanced_orders, so target_price
+        -- is nullable for them as well.
         CONSTRAINT check_limit_has_target CHECK (
             (order_type = 'LIMIT' AND target_price IS NOT NULL) OR
-            (order_type = 'MARKET' AND target_price IS NULL)
+            (order_type = 'MARKET' AND target_price IS NULL) OR
+            (order_type = 'ADVANCED' AND target_price IS NULL)
         )
     );
 
@@ -154,6 +157,34 @@ const createTables = async () => {
       ON CONFLICT (asset_id) DO NOTHING;
     `;
     await pool.query(seedPrices);
+
+    // Advanced orders linked 1-to-1 with orders. CREATE TABLE IF NOT EXISTS is
+    // idempotent for fresh databases; the ALTER guards any pre-existing dev
+    // DB whose orders table still has the old MARKET|LIMIT CHECK. The DROP
+    // CONSTRAINT IF EXISTS makes the migration safe to re-run on databases
+    // that already accepted the advanced schema.
+    await pool.query(`
+      ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_type_check;
+      ALTER TABLE orders ADD CONSTRAINT orders_order_type_check
+        CHECK (order_type IN ('MARKET', 'LIMIT', 'ADVANCED'));
+      ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_limit_has_target;
+      ALTER TABLE orders ADD CONSTRAINT check_limit_has_target CHECK (
+        (order_type = 'LIMIT' AND target_price IS NOT NULL) OR
+        (order_type = 'MARKET' AND target_price IS NULL) OR
+        (order_type = 'ADVANCED' AND target_price IS NULL)
+      );
+      CREATE TABLE IF NOT EXISTS advanced_orders (
+        order_id UUID PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+        advanced_type VARCHAR(20) NOT NULL
+          CHECK (advanced_type IN ('STOP_LOSS', 'TAKE_PROFIT', 'TRAILING_STOP')),
+        trigger_price DECIMAL(15,4),
+        trail_amount DECIMAL(15,4),
+        trail_percent DECIMAL(5,2),
+        high_water_mark DECIMAL(15,4),
+        time_in_force VARCHAR(10) NOT NULL DEFAULT 'DAY'
+          CHECK (time_in_force IN ('DAY', 'GTC'))
+      );
+    `);
 
     console.log('Database tables created and seeded successfully.');
   } catch (error) {
