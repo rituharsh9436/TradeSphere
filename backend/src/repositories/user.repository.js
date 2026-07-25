@@ -30,6 +30,14 @@ const userRepository = {
     return rows[0] || null;
   },
 
+  async findByUsername(username, client = pool) {
+    const { rows } = await client.query(
+      `SELECT id, full_name, username, email, created_at FROM users WHERE username = $1`,
+      [username]
+    );
+    return rows[0] || null;
+  },
+
   // Auth-only lookup: the single method that returns password_hash (for login).
   async findAuthByEmail(email, client = pool) {
     const { rows } = await client.query(

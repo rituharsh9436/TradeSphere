@@ -35,7 +35,12 @@ function hashOtp(email, code) {
 }
 
 function validRegistration({ fullName, username, email, password }) {
-  if (!fullName || !username || !email) throw new AppError('fullName, username and email are required.', 400);
+  if (!fullName || !String(fullName).trim()) throw new AppError('Full name is required.', 400);
+  if (!username || !String(username).trim()) throw new AppError('Username is required.', 400);
+  if (!/^[A-Za-z0-9_.-]{3,30}$/.test(String(username).trim())) {
+    throw new AppError('Username must be 3–30 characters and use only letters, numbers, dots, hyphens, or underscores.', 400);
+  }
+  if (!email || !/^\S+@\S+\.\S+$/.test(String(email).trim())) throw new AppError('Enter a valid email address.', 400);
   if (typeof password !== 'string' || password.length < MIN_PASSWORD_LEN) {
     throw new AppError(`password must be at least ${MIN_PASSWORD_LEN} characters.`, 400);
   }
@@ -45,14 +50,17 @@ const authService = {
   async requestRegistrationOtp({ fullName, username, email, password }) {
     validRegistration({ fullName, username, email, password });
     const normalizedEmail = normalizeEmail(email);
+    const normalizedUsername = String(username).trim();
     const existing = await userRepository.findByEmail(normalizedEmail);
     if (existing) throw new AppError('A user with this email already exists.', 409);
+    const usernameOwner = await userRepository.findByUsername(normalizedUsername);
+    if (usernameOwner) throw new AppError('This username is already taken. Choose another one.', 409);
     const passwordHash = await hashPassword(password);
     const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     await registrationOtpRepository.upsert({
       email: normalizedEmail,
       fullName: String(fullName).trim(),
-      username: String(username).trim(),
+      username: normalizedUsername,
       passwordHash,
       codeHash: hashOtp(normalizedEmail, code),
       expiresAt: new Date(Date.now() + OTP_TTL_MS),

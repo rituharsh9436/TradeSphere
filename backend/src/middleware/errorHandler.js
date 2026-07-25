@@ -15,7 +15,12 @@ const errorHandler = (err, req, res, next) => {
   // error — not 'error', which the envelope contract reserves for 5xx.
   if (err.code === '23505') {
     // unique_violation
-    return res.status(409).json({ status: 'fail', message: 'Resource already exists.' });
+    const message = err.constraint === 'users_email_key'
+      ? 'A user with this email already exists.'
+      : err.constraint === 'users_username_key'
+        ? 'This username is already taken. Choose another one.'
+        : 'Resource already exists.';
+    return res.status(409).json({ status: 'fail', message });
   }
   if (err.code === '23514' || err.code === '23502') {
     // check_violation / not_null_violation

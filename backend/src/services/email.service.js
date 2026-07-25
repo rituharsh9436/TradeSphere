@@ -17,12 +17,17 @@ async function sendRegistrationOtp({ email, code }) {
     secure: process.env.SMTP_SECURE === 'true',
     auth: { user: config.SMTP_USER, pass: config.SMTP_PASSWORD },
   });
-  await transport.sendMail({
-    from: config.SMTP_FROM,
-    to: email,
-    subject: 'Your Money-logix verification code',
-    text: `Your Money-logix verification code is ${code}. It expires in 10 minutes. Do not share this code.`,
-  });
+  try {
+    await transport.sendMail({
+      from: config.SMTP_FROM,
+      to: email,
+      subject: 'Your Money-logix verification code',
+      text: `Your Money-logix verification code is ${code}. It expires in 10 minutes. Do not share this code.`,
+    });
+  } catch (error) {
+    console.error('Registration OTP email failed:', error.message);
+    throw new AppError('We could not send the verification email. Please try again later.', 503);
+  }
 }
 
 module.exports = { sendRegistrationOtp };
