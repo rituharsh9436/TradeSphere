@@ -4,19 +4,19 @@ const pool = require('../config/database');
 // callers can enlist the query in an existing transaction; it defaults to the
 // pool for standalone use.
 const userRepository = {
-  async create({ username, email, passwordHash = null }, client = pool) {
+  async create({ fullName = username, username, email, passwordHash = null }, client = pool) {
     const { rows } = await client.query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, created_at`,
-      [username, email, passwordHash]
+      `INSERT INTO users (full_name, username, email, password_hash)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, full_name, username, email, created_at`,
+      [fullName, username, email, passwordHash]
     );
     return rows[0];
   },
 
   async findById(id, client = pool) {
     const { rows } = await client.query(
-      `SELECT id, username, email, created_at FROM users WHERE id = $1`,
+      `SELECT id, full_name, username, email, created_at FROM users WHERE id = $1`,
       [id]
     );
     return rows[0] || null;
@@ -24,7 +24,7 @@ const userRepository = {
 
   async findByEmail(email, client = pool) {
     const { rows } = await client.query(
-      `SELECT id, username, email, created_at FROM users WHERE email = $1`,
+      `SELECT id, full_name, username, email, created_at FROM users WHERE email = $1`,
       [email]
     );
     return rows[0] || null;
@@ -33,7 +33,7 @@ const userRepository = {
   // Auth-only lookup: the single method that returns password_hash (for login).
   async findAuthByEmail(email, client = pool) {
     const { rows } = await client.query(
-      `SELECT id, username, email, password_hash FROM users WHERE email = $1`,
+      `SELECT id, full_name, username, email, password_hash FROM users WHERE email = $1`,
       [email]
     );
     return rows[0] || null;
@@ -41,7 +41,7 @@ const userRepository = {
 
   async findAll(client = pool) {
     const { rows } = await client.query(
-      `SELECT id, username, email, created_at FROM users ORDER BY created_at ASC`
+      `SELECT id, full_name, username, email, created_at FROM users ORDER BY created_at ASC`
     );
     return rows;
   },

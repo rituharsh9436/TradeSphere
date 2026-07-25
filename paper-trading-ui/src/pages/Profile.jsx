@@ -112,6 +112,10 @@ function Profile() {
         ) : (
           <>
             <div className="card p-4">
+              <div className="text-xs uppercase text-muted">Full name</div>
+              <div className="mt-2 text-2xl font-semibold text-ink">{user?.full_name || user?.username}</div>
+            </div>
+            <div className="card p-4">
               <div className="text-xs uppercase text-muted">Username</div>
               <div className="mt-2 text-2xl font-semibold text-ink">{user?.username}</div>
             </div>

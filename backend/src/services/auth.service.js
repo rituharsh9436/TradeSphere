@@ -34,16 +34,16 @@ function hashOtp(email, code) {
   return crypto.createHmac('sha256', otpSecret()).update(`${email}:${code}`).digest('hex');
 }
 
-function validRegistration({ username, email, password }) {
-  if (!username || !email) throw new AppError('username and email are required.', 400);
+function validRegistration({ fullName, username, email, password }) {
+  if (!fullName || !username || !email) throw new AppError('fullName, username and email are required.', 400);
   if (typeof password !== 'string' || password.length < MIN_PASSWORD_LEN) {
     throw new AppError(`password must be at least ${MIN_PASSWORD_LEN} characters.`, 400);
   }
 }
 
 const authService = {
-  async requestRegistrationOtp({ username, email, password }) {
-    validRegistration({ username, email, password });
+  async requestRegistrationOtp({ fullName, username, email, password }) {
+    validRegistration({ fullName, username, email, password });
     const normalizedEmail = normalizeEmail(email);
     const existing = await userRepository.findByEmail(normalizedEmail);
     if (existing) throw new AppError('A user with this email already exists.', 409);
@@ -51,6 +51,7 @@ const authService = {
     const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     await registrationOtpRepository.upsert({
       email: normalizedEmail,
+      fullName: String(fullName).trim(),
       username: String(username).trim(),
       passwordHash,
       codeHash: hashOtp(normalizedEmail, code),
@@ -78,7 +79,7 @@ const authService = {
         throw new AppError('Verification code is invalid or has expired. Request a new code.', 400);
       }
       const created = await userRepository.create(
-        { username: pending.username, email: normalizedEmail, passwordHash: pending.password_hash },
+        { fullName: pending.full_name, username: pending.username, email: normalizedEmail, passwordHash: pending.password_hash },
         client
       );
       await walletRepository.create({ userId: created.id }, client);
@@ -102,7 +103,7 @@ const authService = {
     const ok = passwordMatches && Boolean(account && account.password_hash);
     if (!ok) throw new AppError('Invalid email or password.', 401);
 
-    const user = { id: account.id, username: account.username, email: account.email };
+    const user = { id: account.id, full_name: account.full_name, username: account.username, email: account.email };
     return { user, token: signToken({ sub: user.id }) };
   },
 };

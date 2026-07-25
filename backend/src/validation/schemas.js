@@ -8,6 +8,7 @@ const registerSchema = {
 };
 
 const requestRegistrationOtpSchema = {
+  fullName: { type: 'string', required: true, min: 1, max: 100 },
   username: { type: 'string', required: true, min: 1, max: 50 },
   email: { type: 'string', required: true, max: 255 },
   password: { type: 'string', required: true, min: 8 },

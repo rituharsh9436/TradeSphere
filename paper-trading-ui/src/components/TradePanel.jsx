@@ -103,7 +103,7 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
       <div className="rounded-md border border-line bg-surface-2 p-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs uppercase text-muted">Demo account</span>
-          <span className="text-sm font-semibold text-ink-secondary">{user?.username}</span>
+          <span className="text-sm font-semibold text-ink-secondary">{user?.full_name || user?.username}</span>
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <div>

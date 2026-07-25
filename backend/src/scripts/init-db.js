@@ -8,6 +8,7 @@ const createTables = async () => {
     -- 1. Users Table
     CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        full_name VARCHAR(100) NOT NULL,
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255),
@@ -18,6 +19,9 @@ const createTables = async () => {
     -- POST /api/users without a password) remain valid; only /api/auth/register
     -- populates it. Idempotent ALTER upgrades pre-existing databases in place.
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(100);
+    UPDATE users SET full_name = username WHERE full_name IS NULL;
+    ALTER TABLE users ALTER COLUMN full_name SET NOT NULL;
 
     -- 2. Wallets Table
     CREATE TABLE IF NOT EXISTS wallets (

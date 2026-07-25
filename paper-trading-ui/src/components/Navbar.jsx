@@ -50,7 +50,7 @@ function Navbar() {
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden rounded-md border border-line bg-plane px-3 py-1.5 text-sm text-muted sm:inline">
               Demo account{" "}
-              <strong className="text-ink-secondary">{user?.username || "..."}</strong>
+              <strong className="text-ink-secondary">{user?.full_name || user?.username || "..."}</strong>
             </span>
             <button type="button" className="btn btn-primary py-1.5 text-sm" onClick={logout}>
               <LogOut className="h-4 w-4" aria-hidden="true" />

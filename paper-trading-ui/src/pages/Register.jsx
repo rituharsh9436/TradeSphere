@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 function Register() {
   const { startRegistration, register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ fullName: "", username: "", email: "", password: "" });
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [error, setError] = useState(null);
@@ -47,7 +47,19 @@ function Register() {
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="text-sm">
+          <span className="mb-1.5 block font-medium text-ink-secondary">Full name</span>
+          <input
+            className="field"
+            type="text"
+            value={form.fullName}
+            required
+            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            disabled={busy || codeSent}
+          />
+        </label>
+        <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Username</span>
+          <span className="mb-1 block text-xs text-muted">Your unique public handle, shown on the leaderboard.</span>
           <input
             className="field"
             type="text"
