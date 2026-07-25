@@ -18,6 +18,9 @@ yarn-debug.log*
 yarn-error.log*
 .npm/
 
+
+MoneyLogix.pptx
+
 # OS generated files
 .DS_Store
 .DS_Store?
