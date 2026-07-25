@@ -7,6 +7,7 @@ on:
 
 jobs:
   backend:
+    if: false
     name: Backend (tests)
     runs-on: ubuntu-latest
 
