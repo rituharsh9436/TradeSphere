@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus, AlertTriangle } from "lucide-react";
+import { UserPlus, AlertTriangle, MailCheck } from "lucide-react";
 import AuthShell from "../components/AuthShell";
 import { useAuth } from "../context/AuthContext";
 
 function Register() {
-  const { register } = useAuth();
+  const { startRegistration, register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -16,10 +18,15 @@ function Register() {
     setError(null);
     setBusy(true);
     try {
-      await register(form);
-      navigate("/");
+      if (!codeSent) {
+        await startRegistration(form);
+        setCodeSent(true);
+      } else {
+        await register({ email: form.email, code });
+        navigate("/");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      setError(err.response?.data?.message || "Unable to complete registration");
     } finally {
       setBusy(false);
     }
@@ -47,7 +54,7 @@ function Register() {
             value={form.username}
             required
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-            disabled={busy}
+            disabled={busy || codeSent}
           />
         </label>
         <label className="text-sm">
@@ -58,7 +65,7 @@ function Register() {
             value={form.email}
             required
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            disabled={busy}
+            disabled={busy || codeSent}
           />
         </label>
         <label className="text-sm">
@@ -70,12 +77,30 @@ function Register() {
             required
             minLength={8}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            disabled={busy}
+            disabled={busy || codeSent}
           />
         </label>
+        {codeSent && (
+          <label className="text-sm">
+            <span className="mb-1.5 block font-medium text-ink-secondary">Verification code</span>
+            <input
+              className="field"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              required
+              minLength={6}
+              maxLength={6}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              disabled={busy}
+            />
+            <span className="mt-1 block text-xs text-muted">We sent a 6-digit code to {form.email}. It expires in 10 minutes.</span>
+          </label>
+        )}
         <button type="submit" className="btn btn-primary mt-2 group" disabled={busy}>
-          <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" aria-hidden="true" />
-          {busy ? "Creating..." : "Create account"}
+          {codeSent ? <MailCheck className="h-4 w-4" aria-hidden="true" /> : <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" aria-hidden="true" />}
+          {busy ? "Please wait..." : codeSent ? "Verify and create account" : "Send verification code"}
         </button>
       </form>
       {error && (

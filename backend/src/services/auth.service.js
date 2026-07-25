@@ -4,8 +4,13 @@ const userRepository = require('../repositories/user.repository');
 const walletRepository = require('../repositories/wallet.repository');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signToken } = require('../utils/token');
+const registrationOtpRepository = require('../repositories/registrationOtp.repository');
+const { sendRegistrationOtp } = require('./email.service');
+const crypto = require('node:crypto');
 
 const MIN_PASSWORD_LEN = 8;
+const OTP_TTL_MS = 10 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
 
 // Emails are identity — normalize to a canonical form (trim + lowercase) on both
 // write and lookup so case/whitespace variants can't create duplicate accounts or
@@ -19,27 +24,65 @@ const normalizeEmail = (email) => String(email).trim().toLowerCase();
 // otherwise let an attacker enumerate which emails are registered.
 const DUMMY_PASSWORD_HASH = `scrypt$${'0'.repeat(32)}$${'0'.repeat(128)}`;
 
-const authService = {
-  // Register a new account: hash the password, then create the user + wallet in
-  // one transaction (a user can never exist without a wallet). Returns the
-  // hash-free user plus a signed JWT.
-  async register({ username, email, password }) {
-    if (!username || !email) throw new AppError('username and email are required.', 400);
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LEN) {
-      throw new AppError(`password must be at least ${MIN_PASSWORD_LEN} characters.`, 400);
-    }
-    const normalizedEmail = normalizeEmail(email);
+function otpSecret() {
+  const secret = process.env.OTP_SECRET || process.env.JWT_SECRET;
+  if (!secret) throw new AppError('Email verification is temporarily unavailable. Please try again later.', 503);
+  return secret;
+}
 
+function hashOtp(email, code) {
+  return crypto.createHmac('sha256', otpSecret()).update(`${email}:${code}`).digest('hex');
+}
+
+function validRegistration({ username, email, password }) {
+  if (!username || !email) throw new AppError('username and email are required.', 400);
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LEN) {
+    throw new AppError(`password must be at least ${MIN_PASSWORD_LEN} characters.`, 400);
+  }
+}
+
+const authService = {
+  async requestRegistrationOtp({ username, email, password }) {
+    validRegistration({ username, email, password });
+    const normalizedEmail = normalizeEmail(email);
     const existing = await userRepository.findByEmail(normalizedEmail);
     if (existing) throw new AppError('A user with this email already exists.', 409);
-
     const passwordHash = await hashPassword(password);
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+    await registrationOtpRepository.upsert({
+      email: normalizedEmail,
+      username: String(username).trim(),
+      passwordHash,
+      codeHash: hashOtp(normalizedEmail, code),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    });
+    await sendRegistrationOtp({ email: normalizedEmail, code });
+  },
+
+  // A user and wallet are created only after the one-time email code is verified.
+  async register({ email, code }) {
+    if (!email || !/^\d{6}$/.test(String(code || ''))) {
+      throw new AppError('email and a 6-digit verification code are required.', 400);
+    }
+    const normalizedEmail = normalizeEmail(email);
     const user = await withTransaction(async (client) => {
+      const pending = await registrationOtpRepository.findForUpdate(normalizedEmail, client);
+      if (!pending || new Date(pending.expires_at) <= new Date() || pending.attempts >= MAX_OTP_ATTEMPTS) {
+        if (pending) await registrationOtpRepository.remove(normalizedEmail, client);
+        throw new AppError('Verification code is invalid or has expired. Request a new code.', 400);
+      }
+      const expected = Buffer.from(pending.code_hash, 'hex');
+      const supplied = Buffer.from(hashOtp(normalizedEmail, String(code)), 'hex');
+      if (!crypto.timingSafeEqual(expected, supplied)) {
+        await registrationOtpRepository.incrementAttempts(normalizedEmail, client);
+        throw new AppError('Verification code is invalid or has expired. Request a new code.', 400);
+      }
       const created = await userRepository.create(
-        { username, email: normalizedEmail, passwordHash },
+        { username: pending.username, email: normalizedEmail, passwordHash: pending.password_hash },
         client
       );
       await walletRepository.create({ userId: created.id }, client);
+      await registrationOtpRepository.remove(normalizedEmail, client);
       return created;
     });
 

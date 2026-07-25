@@ -3,6 +3,11 @@
 // as defense-in-depth for non-HTTP callers.
 
 const registerSchema = {
+  email: { type: 'string', required: true, max: 255 },
+  code: { type: 'string', required: true, min: 6, max: 6 },
+};
+
+const requestRegistrationOtpSchema = {
   username: { type: 'string', required: true, min: 1, max: 50 },
   email: { type: 'string', required: true, max: 255 },
   password: { type: 'string', required: true, min: 8 },
@@ -24,4 +29,4 @@ const placeOrderSchema = {
   targetPrice: { type: 'number', required: false },
 };
 
-module.exports = { registerSchema, loginSchema, placeOrderSchema };
+module.exports = { registerSchema, requestRegistrationOtpSchema, loginSchema, placeOrderSchema };

@@ -2,9 +2,15 @@ const authService = require('../services/auth.service');
 const catchAsync = require('../utils/catchAsync');
 
 const authController = {
-  register: catchAsync(async (req, res) => {
+  requestRegistrationOtp: catchAsync(async (req, res) => {
     const { username, email, password } = req.body;
-    const result = await authService.register({ username, email, password });
+    await authService.requestRegistrationOtp({ username, email, password });
+    res.status(202).json({ status: 'success', message: 'Verification code sent to your email.' });
+  }),
+
+  register: catchAsync(async (req, res) => {
+    const { email, code } = req.body;
+    const result = await authService.register({ email, code });
     res.status(201).json({ status: 'success', data: result });
   }),
 

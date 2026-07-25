@@ -3,6 +3,7 @@ const http = require('node:http');
 const app = require('./app');
 const pool = require('./config/database');
 const { ensureAdvancedOrdersSchema } = require('./db/ensureAdvancedOrdersSchema');
+const { ensureRegistrationOtpSchema } = require('./db/ensureRegistrationOtpSchema');
 const assetRepository = require('./repositories/asset.repository');
 const marketPriceRepository = require('./repositories/marketPrice.repository');
 const createMarketSocket = require('./marketdata/marketSocket');
@@ -15,6 +16,7 @@ const startServer = async () => {
   try {
     await pool.query('SELECT NOW()'); // fail fast if the DB is unreachable
     await ensureAdvancedOrdersSchema();
+    await ensureRegistrationOtpSchema();
 
     const server = http.createServer(app);
     const marketSocket = createMarketSocket();

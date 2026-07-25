@@ -1,6 +1,7 @@
 require('dotenv').config();
 const pool = require('../config/database');
 const { ensureAdvancedOrdersSchema } = require('../db/ensureAdvancedOrdersSchema');
+const { ensureRegistrationOtpSchema } = require('../db/ensureRegistrationOtpSchema');
 
 const createTables = async () => {
   const schemaQuery = `
@@ -160,6 +161,7 @@ const createTables = async () => {
     await pool.query(seedPrices);
 
     await ensureAdvancedOrdersSchema();
+    await ensureRegistrationOtpSchema();
 
     console.log('Database tables created and seeded successfully.');
   } catch (error) {

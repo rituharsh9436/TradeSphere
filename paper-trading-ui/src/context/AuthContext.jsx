@@ -3,7 +3,7 @@
 // ActiveUserContext); opt out of the react-refresh export heuristic.
 import { createContext, useContext, useEffect, useState } from "react";
 import { getToken, setToken } from "../lib/authStorage";
-import { loginUser, registerUser, getMe } from "../services/authApi";
+import { loginUser, registerUser, requestRegistrationOtp, getMe } from "../services/authApi";
 
 const AuthContext = createContext(null);
 
@@ -40,12 +40,15 @@ export function AuthProvider({ children }) {
   async function login(credentials) {
     persist(await loginUser(credentials));
   }
-  async function register(details) {
-    persist(await registerUser(details));
+  async function startRegistration(details) {
+    await requestRegistrationOtp(details);
+  }
+  async function register({ email, code }) {
+    persist(await registerUser({ email, code }));
   }
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ token, user, loading, login, startRegistration, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
