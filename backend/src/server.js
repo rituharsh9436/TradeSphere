@@ -2,6 +2,7 @@ require('dotenv').config();
 const http = require('node:http');
 const app = require('./app');
 const pool = require('./config/database');
+const { ensureAdvancedOrdersSchema } = require('./db/ensureAdvancedOrdersSchema');
 const assetRepository = require('./repositories/asset.repository');
 const marketPriceRepository = require('./repositories/marketPrice.repository');
 const createMarketSocket = require('./marketdata/marketSocket');
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await pool.query('SELECT NOW()'); // fail fast if the DB is unreachable
+    await ensureAdvancedOrdersSchema();
 
     const server = http.createServer(app);
     const marketSocket = createMarketSocket();
