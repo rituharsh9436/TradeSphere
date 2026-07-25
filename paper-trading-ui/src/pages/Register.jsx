@@ -34,7 +34,7 @@ function Register() {
 
   return (
     <AuthShell
-      eyebrow="Virtual $100,000 Portfolio"
+      eyebrow="Virtual Portfolio"
       title="Create account"
       footer={
         <p className="mt-4 text-center text-sm text-muted">
