@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { RotateCcw, XCircle } from "lucide-react";
+import { RotateCcw, Trash2, XCircle } from "lucide-react";
+import ConfirmDeleteAccountModal from "../components/ConfirmDeleteAccountModal";
 import ConfirmResetModal from "../components/ConfirmResetModal";
 import Skeleton from "../components/Skeleton";
 import StatusBadge from "../components/StatusBadge";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
-import { cancelOrder, getOrders, getPortfolio, resetAccount } from "../services/marketApi";
+import { cancelOrder, deleteAccount, getOrders, getPortfolio, resetAccount } from "../services/marketApi";
 import { money, qty } from "../lib/format";
 
 function Profile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [portfolio, setPortfolio] = useState(null);
   const [orders, setOrders] = useState([]);
   const [message, setMessage] = useState(null);
@@ -18,6 +19,9 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [resetOpen, setResetOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
 
   async function refresh() {
     const [nextPortfolio, nextOrders] = await Promise.all([getPortfolio(), getOrders()]);
@@ -76,6 +80,19 @@ function Profile() {
     }
   }
 
+  async function onDeleteAccount() {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteAccount(deletePassword);
+      logout();
+    } catch (err) {
+      setError(err.response?.data?.message || "Account deletion failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const pending = orders.filter((o) => o.status === "PENDING");
 
   return (
@@ -91,15 +108,31 @@ function Profile() {
         onCancel={() => { setResetOpen(false); setConfirmText(""); }}
         onConfirm={onReset}
       />
+      <ConfirmDeleteAccountModal
+        open={deleteOpen}
+        busy={busy}
+        confirmText={deleteConfirmText}
+        password={deletePassword}
+        onConfirmText={setDeleteConfirmText}
+        onPassword={setDeletePassword}
+        onCancel={() => { setDeleteOpen(false); setDeleteConfirmText(""); setDeletePassword(""); }}
+        onConfirm={onDeleteAccount}
+      />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Profile</h1>
           <p className="text-sm text-muted">{user?.email}</p>
         </div>
-        <button type="button" className="btn btn-ghost border-loss/70 text-loss" onClick={() => setResetOpen(true)} disabled={busy}>
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset Account
-        </button>
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-ghost border-loss/70 text-loss" onClick={() => setResetOpen(true)} disabled={busy}>
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            Reset Account
+          </button>
+          <button type="button" className="btn btn-ghost border-loss/70 text-loss" onClick={() => setDeleteOpen(true)} disabled={busy}>
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Delete Account
+          </button>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">

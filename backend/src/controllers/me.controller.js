@@ -48,6 +48,11 @@ const meController = {
     const summary = await resetService.resetAccount({ userId: req.userId });
     res.status(200).json({ status: 'success', data: summary });
   }),
+
+  deleteAccount: catchAsync(async (req, res) => {
+    await userService.deleteAccount({ userId: req.userId, password: req.body.password });
+    res.status(204).send();
+  }),
 };
 
 module.exports = meController;

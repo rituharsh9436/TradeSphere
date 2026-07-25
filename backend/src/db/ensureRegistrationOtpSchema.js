@@ -6,6 +6,16 @@ async function ensureRegistrationOtpSchema() {
     UPDATE users SET full_name = username WHERE full_name IS NULL;
     ALTER TABLE users ALTER COLUMN full_name SET NOT NULL;
 
+    CREATE OR REPLACE FUNCTION reject_transaction_mutation()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' AND current_setting('app.account_deletion', true) = 'on' THEN
+        RETURN OLD;
+      END IF;
+      RAISE EXCEPTION 'transactions is an append-only ledger: % is not permitted', TG_OP;
+    END;
+    $$ LANGUAGE plpgsql;
+
     CREATE TABLE IF NOT EXISTS registration_otps (
       email VARCHAR(255) PRIMARY KEY,
       full_name VARCHAR(100),

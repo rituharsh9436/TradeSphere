@@ -68,6 +68,10 @@ export async function resetAccount() {
   return res.data.data;
 }
 
+export async function deleteAccount(password) {
+  await api.delete("/me", { data: { password } });
+}
+
 export async function getLeaderboard({ limit = 50 } = {}) {
   const res = await api.get("/leaderboard", { params: { limit } });
   return res.data.data;

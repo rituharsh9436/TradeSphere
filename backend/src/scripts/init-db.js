@@ -124,6 +124,11 @@ const createTables = async () => {
     CREATE OR REPLACE FUNCTION reject_transaction_mutation()
     RETURNS TRIGGER AS $$
     BEGIN
+        -- Account deletion is the sole audited exception. The flag is scoped to
+        -- the deletion transaction and is never accepted from an HTTP request.
+        IF TG_OP = 'DELETE' AND current_setting('app.account_deletion', true) = 'on' THEN
+            RETURN OLD;
+        END IF;
         RAISE EXCEPTION 'transactions is an append-only ledger: % is not permitted', TG_OP;
     END;
     $$ LANGUAGE plpgsql;

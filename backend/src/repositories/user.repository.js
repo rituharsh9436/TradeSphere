@@ -47,6 +47,25 @@ const userRepository = {
     return rows[0] || null;
   },
 
+  async findAuthByIdForUpdate(id, client) {
+    const { rows } = await client.query(
+      `SELECT id, password_hash FROM users WHERE id = $1 FOR UPDATE`,
+      [id]
+    );
+    return rows[0] || null;
+  },
+
+  async deleteAccount(id, client) {
+    // The transaction-local flag permits deletion from the otherwise
+    // append-only paper-trading ledger; see reject_transaction_mutation().
+    await client.query("SELECT set_config('app.account_deletion', 'on', true)");
+    await client.query('DELETE FROM transactions WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM orders WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM positions WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM wallets WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM users WHERE id = $1', [id]);
+  },
+
   async findAll(client = pool) {
     const { rows } = await client.query(
       `SELECT id, full_name, username, email, created_at FROM users ORDER BY created_at ASC`

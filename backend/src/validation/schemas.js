@@ -19,6 +19,10 @@ const loginSchema = {
   password: { type: 'string', required: true },
 };
 
+const deleteAccountSchema = {
+  password: { type: 'string', required: true, min: 1 },
+};
+
 // symbol/side/quantity are always required. orderType and targetPrice are
 // optional here — the service owns the MARKET-vs-LIMIT rule (LIMIT needs a
 // positive targetPrice; MARKET must omit it) and the quantity > 0 check.
@@ -30,4 +34,4 @@ const placeOrderSchema = {
   targetPrice: { type: 'number', required: false },
 };
 
-module.exports = { registerSchema, requestRegistrationOtpSchema, loginSchema, placeOrderSchema };
+module.exports = { registerSchema, requestRegistrationOtpSchema, loginSchema, deleteAccountSchema, placeOrderSchema };
