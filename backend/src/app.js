@@ -39,7 +39,10 @@ app.use(helmet()); // sensible security headers (CSP off by default for a JSON A
 // Restrict CORS to an allowlist when CORS_ORIGIN is set (comma-separated origins);
 // otherwise reflect any origin (convenient for local dev). Set it in production.
 const corsOrigin = process.env.CORS_ORIGIN;
-app.use(cors(corsOrigin ? { origin: corsOrigin.split(',').map((o) => o.trim()) } : undefined));
+app.use(cors({
+  origin: "https://money-logix-project.vercel.app/login",
+  credentials: true
+}));
 app.use(express.json()); // Parses incoming JSON requests
 
 // Health check route (no rate limit — used by liveness probes)
