@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createMarketSocket } from "../services/marketSocket";
 import { getPrices } from "../services/marketApi";
+import { getWsUrl } from "../services/api";
 
-const WS_URL = "ws://localhost:5000/ws/market";
+const WS_URL = getWsUrl();
 
 // Opens one shared market socket and exposes (a) a live latest-price map for the
 // price list and (b) a raw tick subscription for the selected-symbol candle.
