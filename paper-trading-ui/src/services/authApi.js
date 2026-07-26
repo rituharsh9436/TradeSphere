@@ -1,7 +1,7 @@
 import api from "./api";
 
-export async function requestRegistrationOtp({ username, email, password }) {
-  await api.post("/auth/request-registration-otp", { username, email, password });
+export async function requestRegistrationOtp({ fullName, username, email, password }) {
+  await api.post("/auth/request-registration-otp", { fullName, username, email, password });
 }
 
 export async function registerUser({ email, code }) {
