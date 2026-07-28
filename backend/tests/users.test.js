@@ -3,11 +3,12 @@
 // Step 6b — GET /api/users list endpoint (powers the frontend dev user picker).
 // Registers a user via the API, then asserts it appears in the list.
 
-const { test, before, after } = require('node:test');
+const { test, before, after, mock } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const pool = require('../src/config/database');
 const app = require('../src/app');
+const emailService = require('../src/services/email.service');
 
 let server;
 let base;
@@ -36,7 +37,18 @@ test('GET /api/users lists registered users (no sensitive fields)', async () => 
   const tag = `${process.pid}_${process.hrtime.bigint().toString(36)}`;
   const email = `picker_${tag}@test.com`;
   const username = `picker_${tag}`; // username is UNIQUE — keep it per-run to stay rerunnable
-  const created = await apiJson('POST', '/api/users', { username, email });
+
+  let capturedCode = null;
+  mock.method(emailService, 'sendRegistrationOtp', async (opts) => {
+    if (opts.email === email) capturedCode = opts.code;
+    return Promise.resolve();
+  });
+
+  const reqOtp = await apiJson('POST', '/api/auth/request-registration-otp', { username, email, password: 'password123', fullName: 'Picker User' });
+  emailService.sendRegistrationOtp.mock.restore();
+  assert.equal(reqOtp.status, 202);
+
+  const created = await apiJson('POST', '/api/auth/register', { email, code: capturedCode });
   assert.equal(created.status, 201);
 
   const list = await apiJson('GET', '/api/users');
@@ -47,5 +59,5 @@ test('GET /api/users lists registered users (no sensitive fields)', async () => 
   assert.ok(found, 'registered user appears in list');
   assert.equal(found.username, username);
   // Assert the exact shape so a future `SELECT *` can't silently leak new columns.
-  assert.deepEqual(Object.keys(found).sort(), ['created_at', 'email', 'id', 'username']);
+  assert.deepStrictEqual(Object.keys(found).sort(), ['created_at', 'email', 'full_name', 'id', 'username']);
 });

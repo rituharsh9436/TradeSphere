@@ -37,11 +37,27 @@ async function apiJson(method, path, body) {
   return { status: res.status, body: json };
 }
 
+const emailService = require('../src/services/email.service');
+const { mock } = require('node:test');
+
 async function registerUser() {
   const t = tag();
-  const r = await apiJson('POST', '/api/users', { username: `lim_${t}`, email: `lim_${t}@test.com` });
+  const email = `lim_${t}@test.com`;
+  const body = { username: `lim_${t}`, email, password: 'password123', fullName: `Limit User` };
+  
+  let capturedCode = null;
+  mock.method(emailService, 'sendRegistrationOtp', async (opts) => {
+    if (opts.email === email) capturedCode = opts.code;
+    return Promise.resolve();
+  });
+
+  const reqOtp = await apiJson('POST', '/api/auth/request-registration-otp', body);
+  emailService.sendRegistrationOtp.mock.restore();
+  assert.equal(reqOtp.status, 202);
+
+  const r = await apiJson('POST', '/api/auth/register', { email, code: capturedCode });
   assert.equal(r.status, 201, `register: ${JSON.stringify(r.body)}`);
-  return r.body.data.id;
+  return r.body.data.user.id;
 }
 
 async function assetIdOf(symbol) {

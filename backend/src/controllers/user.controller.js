@@ -7,11 +7,7 @@ const catchAsync = require('../utils/catchAsync');
 // Thin HTTP adapters: parse the request, call the service, shape the response.
 // No business logic lives here.
 const userController = {
-  register: catchAsync(async (req, res) => {
-    const { username, email } = req.body;
-    const user = await userService.register({ username, email });
-    res.status(201).json({ status: 'success', data: user });
-  }),
+
 
   list: catchAsync(async (req, res) => {
     const users = await userService.list();

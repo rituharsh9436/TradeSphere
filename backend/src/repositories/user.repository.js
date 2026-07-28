@@ -4,7 +4,7 @@ const pool = require('../config/database');
 // callers can enlist the query in an existing transaction; it defaults to the
 // pool for standalone use.
 const userRepository = {
-  async create({ fullName = username, username, email, passwordHash = null }, client = pool) {
+  async create({ username, fullName = username, email, passwordHash = null }, client = pool) {
     const { rows } = await client.query(
       `INSERT INTO users (full_name, username, email, password_hash)
        VALUES ($1, $2, $3, $4)

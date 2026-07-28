@@ -8,24 +8,6 @@ const { verifyPassword } = require('../utils/password');
 // virtual wallet — both happen in one transaction so a user can never exist
 // without a wallet.
 const userService = {
-  async register({ username, email }) {
-    if (!username || !email) {
-      throw new AppError('username and email are required.', 400);
-    }
-    const normalizedEmail = String(email).trim().toLowerCase();
-
-    const existing = await userRepository.findByEmail(normalizedEmail);
-    if (existing) {
-      throw new AppError('A user with this email already exists.', 409);
-    }
-
-    return withTransaction(async (client) => {
-      const user = await userRepository.create({ username, email: normalizedEmail }, client);
-      const wallet = await walletRepository.create({ userId: user.id }, client);
-      return { ...user, wallet };
-    });
-  },
-
   async getById(id) {
     const user = await userRepository.findById(id);
     if (!user) {

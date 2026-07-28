@@ -13,6 +13,8 @@ const app = require('../src/app');
 
 const { hashPassword, verifyPassword } = require('../src/utils/password');
 const { signToken, verifyToken } = require('../src/utils/token');
+const emailService = require('../src/services/email.service');
+const { mock } = require('node:test');
 
 let server;
 let base;
@@ -93,10 +95,28 @@ test('userRepository: stores password_hash and exposes it only via findAuthByEma
 
 async function register(overrides = {}) {
   const t = tag();
+  const email = overrides.email || `au_${t}@test.com`;
   const body = {
-    username: `au_${t}`, email: `au_${t}@test.com`, password: 'password123', ...overrides,
+    username: 'username' in overrides ? overrides.username : `au_${t}`, 
+    email, 
+    password: 'password' in overrides ? overrides.password : 'password123',
+    fullName: 'fullName' in overrides ? overrides.fullName : `FullName_${t}`
   };
-  return api('POST', '/api/auth/register', body);
+
+  let capturedCode = null;
+  mock.method(emailService, 'sendRegistrationOtp', async (opts) => {
+    if (opts.email === email) capturedCode = opts.code;
+    return Promise.resolve();
+  });
+
+  const reqOtp = await api('POST', '/api/auth/request-registration-otp', body);
+  emailService.sendRegistrationOtp.mock.restore();
+
+  if (reqOtp.status !== 202) {
+    return reqOtp;
+  }
+
+  return api('POST', '/api/auth/register', { email, code: overrides.code || capturedCode });
 }
 
 test('POST /api/auth/register: creates user + wallet, returns token, no hash leak', async () => {
@@ -122,8 +142,8 @@ test('POST /api/auth/register: validation + duplicate email', async () => {
 
   const first = await register();
   const dupEmail = first.body.data.user.email;
-  const dup = await api('POST', '/api/auth/register', {
-    username: `other_${tag()}`, email: dupEmail, password: 'password123',
+  const dup = await api('POST', '/api/auth/request-registration-otp', {
+    username: `other_${tag()}`, email: dupEmail, password: 'password123', fullName: 'Dup User'
   });
   assert.equal(dup.status, 409);
 });
@@ -145,8 +165,9 @@ test('POST /api/auth/login: valid creds, wrong password, unknown email', async (
 
 test('login: legacy user with NULL password_hash cannot log in', async () => {
   const t = tag();
-  const legacy = await api('POST', '/api/users', { username: `legacy_${t}`, email: `legacy_${t}@test.com` });
-  assert.equal(legacy.status, 201);
+  const userRepository = require('../src/repositories/user.repository');
+  const legacyUser = await userRepository.create({ username: `legacy_${t}`, email: `legacy_${t}@test.com` });
+  assert.ok(legacyUser.id);
   const attempt = await api('POST', '/api/auth/login', { email: `legacy_${t}@test.com`, password: 'anything123' });
   assert.equal(attempt.status, 401);
 });

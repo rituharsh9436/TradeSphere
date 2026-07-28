@@ -3,7 +3,7 @@ const userController = require('../controllers/user.controller');
 
 const router = express.Router();
 
-router.post('/', userController.register);
+
 router.get('/', userController.list);
 router.get('/:id', userController.getById);
 router.get('/:id/wallet', userController.getWallet);

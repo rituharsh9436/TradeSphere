@@ -14,6 +14,11 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    const { BREVO_API_KEY, MAIL_FROM_EMAIL, MAIL_FROM_NAME } = process.env;
+    if (!BREVO_API_KEY || !MAIL_FROM_EMAIL || !MAIL_FROM_NAME) {
+      throw new Error('Missing required email configuration: BREVO_API_KEY, MAIL_FROM_EMAIL, or MAIL_FROM_NAME must be set.');
+    }
+
     await pool.query('SELECT NOW()'); // fail fast if the DB is unreachable
     await ensureAdvancedOrdersSchema();
     await ensureRegistrationOtpSchema();

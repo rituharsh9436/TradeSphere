@@ -5,7 +5,7 @@ const walletRepository = require('../repositories/wallet.repository');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signToken } = require('../utils/token');
 const registrationOtpRepository = require('../repositories/registrationOtp.repository');
-const { sendRegistrationOtp } = require('./email.service');
+const emailService = require('./email.service');
 const crypto = require('node:crypto');
 
 const MIN_PASSWORD_LEN = 8;
@@ -76,7 +76,7 @@ const authService = {
     });
     
     console.log(`[AuthService] Dispatching email via EmailService for ${normalizedEmail}...`);
-    await sendRegistrationOtp({ email: normalizedEmail, code });
+    await emailService.sendRegistrationOtp({ email: normalizedEmail, code });
     console.log(`[AuthService] Successfully completed OTP request for ${normalizedEmail}.`);
   },
 

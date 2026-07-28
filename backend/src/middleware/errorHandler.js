@@ -34,7 +34,7 @@ const errorHandler = (err, req, res, next) => {
   // Structured server-side log for genuine failures (5xx / unexpected bugs).
   // Operational 4xx errors are expected client mistakes and are not logged.
   // Silent under test to keep the suite output clean.
-  if (statusCode >= 500 && process.env.NODE_ENV !== 'test') {
+  if (statusCode >= 500) {
     console.error(
       JSON.stringify({
         level: 'error',

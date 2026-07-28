@@ -22,7 +22,7 @@ const dropAll = async () => {
     await pool.query(dropQuery);
     console.log('Database reset successfully. Run db:init to rebuild the schema.');
   } catch (error) {
-    console.error('Error resetting database:', error.message);
+    console.error('Error resetting database:', error);
     process.exitCode = 1; // Report failure to the shell/CI
   } finally {
     await pool.end(); // Close the pool so the script exits

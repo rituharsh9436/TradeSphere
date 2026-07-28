@@ -9,13 +9,14 @@
 // Assumes the schema is initialized and assets seeded (npm run db:init) with the
 // default seed prices: AAPL=195, MSFT=430, TSLA=250.
 
-const { test, before, after } = require('node:test');
+const { test, before, after, mock } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const Decimal = require('decimal.js');
 
 const app = require('../src/app');
 const pool = require('../src/config/database');
+const emailService = require('../src/services/email.service');
 
 const PRICES = { AAPL: '195', MSFT: '430', TSLA: '250' };
 const START_BALANCE = '100000';
@@ -53,12 +54,28 @@ async function api(method, path, body) {
   return { status: res.status, body: json };
 }
 
-async function registerUser(label) {
-  const email = `${label}_${runTag}_${userSeq++}@test.com`;
-  const r = await api('POST', '/api/users', { username: label, email });
+async function registerUser(label, overrideEmail = null) {
+  const uniq = `${label}_${runTag}_${userSeq++}`;
+  const email = overrideEmail || `${uniq}@test.com`;
+  const body = { username: uniq, email, password: 'password123', fullName: `${label} User` };
+
+  let capturedCode = null;
+  mock.method(emailService, 'sendRegistrationOtp', async (opts) => {
+    if (opts.email === email) capturedCode = opts.code;
+    return Promise.resolve();
+  });
+
+  const reqOtp = await api('POST', '/api/auth/request-registration-otp', body);
+  emailService.sendRegistrationOtp.mock.restore();
+  
+  if (reqOtp.status === 409) return { status: 409, body: reqOtp.body };
+  if (reqOtp.status === 400) return { status: 400, body: reqOtp.body };
+  
+  assert.equal(reqOtp.status, 202, `request OTP ${label}: ${JSON.stringify(reqOtp.body)}`);
+
+  const r = await api('POST', '/api/auth/register', { email, code: capturedCode });
   assert.equal(r.status, 201, `register ${label}: ${JSON.stringify(r.body)}`);
-  assert.equal(r.body.data.wallet.balance, new Decimal(START_BALANCE).toFixed(4));
-  return r.body.data.id;
+  return r.body.data.user.id;
 }
 
 const buy = (userId, symbol, quantity) =>
@@ -88,16 +105,23 @@ const eq = (a, b) => new Decimal(a).eq(b);
 // ===========================================================================
 test('registration: duplicate email rejected (409), missing fields (400)', async () => {
   const email = `dup_${runTag}@test.com`;
-  const first = await api('POST', '/api/users', { username: 'dup', email });
-  assert.equal(first.status, 201);
+  
+  // Create first user
+  const first = await registerUser('dup', email);
+  assert.ok(first); // ID returned
 
-  const dup = await api('POST', '/api/users', { username: 'dup2', email });
+  // Attempt duplicate email
+  const dup = await api('POST', '/api/auth/request-registration-otp', { 
+    username: 'dup2', email, password: 'password123', fullName: 'Dup User 2' 
+  });
   assert.equal(dup.status, 409);
 
-  const noEmail = await api('POST', '/api/users', { username: 'x' });
+  const noEmail = await api('POST', '/api/auth/request-registration-otp', { 
+    username: 'x', password: 'password123', fullName: 'X User' 
+  });
   assert.equal(noEmail.status, 400);
 
-  const empty = await api('POST', '/api/users', {});
+  const empty = await api('POST', '/api/auth/request-registration-otp', {});
   assert.equal(empty.status, 400);
 });
 

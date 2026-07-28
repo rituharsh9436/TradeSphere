@@ -49,11 +49,27 @@ async function api(method, path, body) {
   return { status: res.status, body: json };
 }
 
+const emailService = require('../src/services/email.service');
+const { mock } = require('node:test');
+
 async function registerUser(label) {
-  const email = `${label}_${runTag}_${userSeq++}@test.com`;
-  const r = await api('POST', '/api/users', { username: label, email });
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  return r.body.data.id;
+  const uniq = `${label}_${runTag}_${userSeq++}`;
+  const email = `${uniq}@test.com`;
+  const body = { username: uniq, email, password: 'password123', fullName: `${label} User` };
+  
+  let capturedCode = null;
+  mock.method(emailService, 'sendRegistrationOtp', async (opts) => {
+    if (opts.email === email) capturedCode = opts.code;
+    return Promise.resolve();
+  });
+
+  const reqOtp = await api('POST', '/api/auth/request-registration-otp', body);
+  emailService.sendRegistrationOtp.mock.restore();
+  assert.equal(reqOtp.status, 202);
+
+  const r = await api('POST', '/api/auth/register', { email, code: capturedCode });
+  assert.equal(r.status, 201, `register ${label}: ${JSON.stringify(r.body)}`);
+  return r.body.data.user.id;
 }
 
 const buy = (userId, symbol, quantity) =>
