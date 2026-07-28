@@ -13,6 +13,7 @@ function secret() {
   // secret would let anyone forge a token for any user. Outside production we keep
   // a warned dev fallback so local development and tests work without config.
   if (process.env.NODE_ENV === 'production') {
+    console.error('[TokenUtils] CRITICAL: JWT_SECRET environment variable is missing in production environment.');
     throw new Error('JWT_SECRET must be set in production.');
   }
   if (!warned) {
@@ -46,6 +47,7 @@ function verifyToken(token) {
   const a = Buffer.from(providedSig);
   const b = Buffer.from(expectedSig);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    console.warn(`[TokenUtils] Token signature verification failed.`);
     throw new AppError('Invalid or expired token.', 401);
   }
   let payload;
@@ -55,6 +57,7 @@ function verifyToken(token) {
     throw new AppError('Invalid or expired token.', 401);
   }
   if (!payload.exp || Math.floor(Date.now() / 1000) >= payload.exp) {
+    console.warn(`[TokenUtils] Token expired. payload.exp=${payload.exp}`);
     throw new AppError('Invalid or expired token.', 401);
   }
   return payload;
