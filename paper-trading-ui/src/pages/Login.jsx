@@ -27,7 +27,7 @@ function Login() {
 
   return (
     <AuthShell
-      eyebrow="Money-logix Terminal"
+      eyebrow="TradeSphere Terminal"
       title="Log in"
       footer={
         <p className="mt-4 text-center text-sm text-muted">

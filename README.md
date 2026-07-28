@@ -1,4 +1,4 @@
-# 📈 Money-logix — Paper Trading & Virtual Portfolio Engine
+# 📈 TradeSphere — Paper Trading & Virtual Portfolio Engine
 
 A risk-free, realistic stock-trading simulator. Users get a virtual cash balance,
 place **market** and **limit** orders against **live market prices**, and track
@@ -77,7 +77,7 @@ ledger is append-only, enforced at the database level.
 ## 📁 Repository layout
 
 ```
-Money-logix-project/
+TradeSphere-project/
 ├── backend/                     # Node + Express + PostgreSQL API
 │   ├── src/
 │   │   ├── app.js               # Express app (middleware, routes, error handler)

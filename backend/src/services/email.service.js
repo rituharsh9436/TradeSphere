@@ -95,8 +95,8 @@ async function sendEmail({ to, subject, htmlContent, textContent }) {
  * Sends a registration OTP email
  */
 async function sendRegistrationOtp({ email, code }) {
-  const subject = 'Your Money-logix verification code';
-  const textContent = `Your Money-logix verification code is ${code}. It expires in 10 minutes. Do not share this code.`;
+  const subject = 'Your TradeSphere verification code';
+  const textContent = `Your TradeSphere verification code is ${code}. It expires in 10 minutes. Do not share this code.`;
   const htmlContent = `
     <h2>Your OTP Code</h2>
     <p>Your verification code is:</p>

@@ -7,9 +7,9 @@ function AuthShell({ eyebrow, title, children, footer }) {
         <div>
           <span className="inline-flex items-center gap-2 text-xl font-bold tracking-tight">
             <span className="grid h-8 w-8 place-items-center rounded-md bg-accent text-sm font-black text-plane">
-              ML
+              TS
             </span>
-            Money<span className="text-accent">logix</span>
+            Trade<span className="text-accent">Sphere</span>
           </span>
           <div className="mt-16 max-w-xl">
             <p className="text-sm font-semibold uppercase text-accent">{eyebrow}</p>
@@ -41,9 +41,9 @@ function AuthShell({ eyebrow, title, children, footer }) {
           <div className="mb-6 text-center lg:hidden">
             <span className="inline-flex items-center gap-2 text-xl font-bold tracking-tight">
               <span className="grid h-7 w-7 place-items-center rounded-md bg-accent text-sm font-black text-plane">
-                ML
+                TS
               </span>
-              Money<span className="text-accent">logix</span>
+              Trade<span className="text-accent">Sphere</span>
             </span>
             <p className="mt-2 text-sm text-muted">{eyebrow}</p>
           </div>

@@ -8,7 +8,7 @@ async function ensureAdvancedOrdersSchema() {
     await client.query('BEGIN');
     // Multiple application instances can start together. Serialise this small
     // migration so their ALTER TABLE statements cannot race.
-    await client.query("SELECT pg_advisory_xact_lock(hashtext('moneylogix:advanced-orders-schema-v1'))");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('tradesphere:advanced-orders-schema-v1'))");
     await client.query(`
       ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_type_check;
       ALTER TABLE orders ADD CONSTRAINT orders_order_type_check

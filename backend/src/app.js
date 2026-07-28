@@ -38,12 +38,12 @@ app.use(requestLogger);
 app.use(helmet()); // sensible security headers (CSP off by default for a JSON API)
 // Restrict CORS to an allowlist when CORS_ORIGIN is set (comma-separated origins).
 // Browser origins never include a path, so this must be e.g.
-// https://money-logix-project.vercel.app — not /login or any other route.
+// https://tradesphere-project.vercel.app — not /login or any other route.
 const corsOrigin = process.env.CORS_ORIGIN;
 const allowedOrigins = corsOrigin
   ? corsOrigin.split(',').map((origin) => origin.trim()).filter(Boolean)
   : process.env.NODE_ENV === 'production'
-    ? ['https://money-logix-project.vercel.app']
+    ? ['https://tradesphere-project.vercel.app']
     : null;
 
 app.use(cors({

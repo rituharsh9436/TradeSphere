@@ -19,9 +19,9 @@ function Navbar() {
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
           <span className="flex items-center gap-2 font-bold tracking-tight">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-accent text-sm font-black text-plane">
-              ML
+              TS
             </span>
-            Money<span className="text-accent">logix</span>
+            Trade<span className="text-accent">Sphere</span>
           </span>
 
           <div className="hidden items-center gap-1 rounded-md border border-line bg-plane p-1 md:flex">
