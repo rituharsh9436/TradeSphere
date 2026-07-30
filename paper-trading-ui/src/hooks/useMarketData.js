@@ -19,6 +19,9 @@ export function useMarketData() {
 
   useEffect(() => {
     let active = true;
+    let pendingPrices = null;
+    let throttleTimer = null;
+
     getPrices()
       .then((snapshot) => {
         if (!active) return;
@@ -34,13 +37,27 @@ export function useMarketData() {
 
     const sock = createMarketSocket(WS_URL, { onStatus: setConnectionStatus });
     const off = sock.subscribe((tick) => {
-      setPrices((prev) => ({ ...prev, [tick.symbol]: { price: tick.price, ts: tick.ts } }));
+      // Synchronously notify listeners for immediate chart updates
       for (const cb of listenersRef.current) cb(tick);
+
+      // Throttle React state updates for the price list
+      if (!pendingPrices) pendingPrices = {};
+      pendingPrices[tick.symbol] = { price: tick.price, ts: tick.ts };
+
+      if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+          if (active) setPrices((prev) => ({ ...prev, ...pendingPrices }));
+          pendingPrices = null;
+          throttleTimer = null;
+        }, 200);
+      }
     });
+    
     return () => {
       active = false;
       off();
       sock.close();
+      if (throttleTimer) clearTimeout(throttleTimer);
     };
   }, []);
 
