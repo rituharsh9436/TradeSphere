@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Clock3 } from "lucide-react";
 import { money } from "../lib/format";
 
@@ -5,6 +6,7 @@ import { money } from "../lib/format";
 // the current price and is clickable to select that symbol for the chart.
 function PriceList({ prices, selected, onSelect }) {
   const symbols = Object.keys(prices).sort();
+  const buttonRefs = useRef([]);
 
   if (symbols.length === 0) {
     return (
@@ -14,13 +16,29 @@ function PriceList({ prices, selected, onSelect }) {
     );
   }
 
+  function handleKeyDown(e, index) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = buttonRefs.current[index + 1] || buttonRefs.current[0];
+      next?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = buttonRefs.current[index - 1] || buttonRefs.current[symbols.length - 1];
+      prev?.focus();
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-1.5">
-      {symbols.map((symbol) => (
+    <div className="flex flex-col gap-1.5" role="listbox" aria-label="Symbols">
+      {symbols.map((symbol, i) => (
         <button
           key={symbol}
+          ref={(el) => (buttonRefs.current[i] = el)}
           type="button"
+          role="option"
+          aria-selected={symbol === selected}
           onClick={() => onSelect(symbol)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
           className={`group flex items-center justify-between gap-4 rounded-md border px-3 py-2.5 text-left transition-colors ${
             symbol === selected
               ? "border-accent bg-surface-2 text-ink"

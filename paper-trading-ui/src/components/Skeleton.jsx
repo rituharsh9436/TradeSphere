@@ -1,13 +1,15 @@
+import { Card } from "./ui/Card";
+
 function Skeleton({ className = "" }) {
   return <div className={`animate-pulse rounded-md bg-surface-3/70 ${className}`} />;
 }
 
 export function StatSkeleton() {
   return (
-    <div className="card p-4">
+    <Card className="p-4">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-4 h-8 w-32" />
-    </div>
+    </Card>
   );
 }
 

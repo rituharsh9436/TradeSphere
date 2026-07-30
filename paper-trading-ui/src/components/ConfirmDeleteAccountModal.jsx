@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from "lucide-react";
-
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
 function ConfirmDeleteAccountModal({ open, busy, confirmText, password, onConfirmText, onPassword, onCancel, onConfirm }) {
   if (!open) return null;
   const canConfirm = confirmText === "DELETE" && password && !busy;
@@ -25,19 +26,19 @@ function ConfirmDeleteAccountModal({ open, busy, confirmText, password, onConfir
         <div className="space-y-4 p-4">
           <label className="block text-sm">
             <span className="mb-1 block text-muted">Enter your password</span>
-            <input className="field" type="password" value={password} onChange={(e) => onPassword(e.target.value)} autoComplete="current-password" />
+            <Input type="password" value={password} onChange={(e) => onPassword(e.target.value)} autoComplete="current-password" />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-muted">Type DELETE to confirm</span>
-            <input className="field" value={confirmText} onChange={(e) => onConfirmText(e.target.value)} />
+            <Input value={confirmText} onChange={(e) => onConfirmText(e.target.value)} />
           </label>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-line p-4">
-          <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
-          <button type="button" className="btn border-loss/70 bg-loss text-white hover:bg-loss/90" onClick={onConfirm} disabled={!canConfirm}>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
+          <Button variant="primary" className="border-loss/70 bg-loss text-white hover:bg-loss/90 shadow-loss/20 hover:shadow-loss/40" onClick={onConfirm} disabled={!canConfirm}>
             {busy ? "Deleting..." : "Delete account"}
-          </button>
+          </Button>
         </div>
       </section>
     </div>

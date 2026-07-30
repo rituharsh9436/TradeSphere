@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import { createChart, CandlestickSeries } from "lightweight-charts";
 
 // Thin renderer over lightweight-charts. All OHLC/tick math lives upstream in
@@ -13,17 +13,17 @@ function CandlestickChart({ candles, seriesKey }) {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 460,
-      layout: { background: { color: "#191b20" }, textColor: "#818690" },
+      layout: { background: { color: "transparent" }, textColor: "#A1A1AA" },
       grid: {
-        vertLines: { color: "#2a2d34" },
-        horzLines: { color: "#2a2d34" },
+        vertLines: { color: "rgba(255, 255, 255, 0.05)" },
+        horzLines: { color: "rgba(255, 255, 255, 0.05)" },
       },
-      rightPriceScale: { borderColor: "#383b44" },
+      rightPriceScale: { borderColor: "rgba(255, 255, 255, 0.1)" },
       crosshair: {
         vertLine: { color: "#f7ca24", labelBackgroundColor: "#f7ca24" },
         horzLine: { color: "#f7ca24", labelBackgroundColor: "#f7ca24" },
       },
-      timeScale: { borderColor: "#383b44", timeVisible: true, secondsVisible: true },
+      timeScale: { borderColor: "rgba(255, 255, 255, 0.1)", timeVisible: true, secondsVisible: true },
     });
     const series = chart.addSeries(CandlestickSeries, {
       upColor: "#21c983",
@@ -60,7 +60,15 @@ function CandlestickChart({ candles, seriesKey }) {
     }
   }, [candles, seriesKey]);
 
-  return <div ref={containerRef} className="h-[460px] w-full" />;
+  const symbol = seriesKey ? seriesKey.split(':')[0] : 'Asset';
+  return (
+    <div 
+      ref={containerRef} 
+      className="h-[460px] w-full" 
+      role="region"
+      aria-label={`Interactive candlestick chart for ${symbol}`}
+    />
+  );
 }
 
-export default CandlestickChart;
+export default memo(CandlestickChart);

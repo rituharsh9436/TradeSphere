@@ -11,6 +11,8 @@ import { useMarketData } from "../hooks/useMarketData";
 import { applyTickToCandles, toChartCandles } from "../lib/candles";
 import { money } from "../lib/format";
 import { getCandles, getPortfolio } from "../services/marketApi";
+import { Card } from "../components/ui/Card";
+import { PageContainer } from "../components/ui/PageContainer";
 
 function Market() {
   const { prices, subscribeTick, connectionStatus } = useMarketData();
@@ -74,7 +76,7 @@ function Market() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
+    <PageContainer className="pb-24 pt-6 md:pb-6">
       <Toast message={toast?.message} type={toast?.ok ? "success" : "error"} onClose={() => setToast(null)} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -94,15 +96,15 @@ function Market() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
-        <aside className="card p-4">
+        <Card as="aside" className="p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold text-ink-secondary">Symbols</h2>
             {isLive ? <Radio className="h-4 w-4 text-gain" aria-hidden="true" /> : <WifiOff className="h-4 w-4 text-warning" aria-hidden="true" />}
           </div>
           <PriceList prices={prices} selected={symbol} onSelect={setSymbol} />
-        </aside>
+        </Card>
 
-        <section className="card overflow-hidden">
+        <Card as="section" className="overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -115,14 +117,14 @@ function Market() {
           </div>
           {error && <div className="m-4 rounded-md border border-loss/50 p-3 text-sm text-loss">{error}</div>}
           {loadingCandles ? <div className="p-4"><Skeleton className="h-[428px] w-full" /></div> : <CandlestickChart candles={candles} seriesKey={seriesKey} />}
-        </section>
+        </Card>
 
-        <aside className="card p-4 lg:sticky lg:top-20 lg:self-start">
+        <Card as="aside" className="p-4 lg:sticky lg:top-20 lg:self-start">
           <h2 className="mb-4 font-semibold text-ink-secondary">Trade</h2>
           <TradePanel symbol={symbol} price={livePrice} portfolio={portfolio} onOrderPlaced={refreshPortfolio} />
-        </aside>
+        </Card>
       </div>
-    </main>
+    </PageContainer>
   );
 }
 

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { UserPlus, AlertTriangle, MailCheck } from "lucide-react";
 import AuthShell from "../components/AuthShell";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 import { useAuth } from "../context/AuthContext";
 
 function Register() {
@@ -48,8 +50,7 @@ function Register() {
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Full name</span>
-          <input
-            className="field"
+          <Input
             type="text"
             value={form.fullName}
             required
@@ -60,8 +61,7 @@ function Register() {
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Username</span>
           <span className="mb-1 block text-xs text-muted">Your unique public handle, shown on the leaderboard.</span>
-          <input
-            className="field"
+          <Input
             type="text"
             value={form.username}
             required
@@ -71,8 +71,7 @@ function Register() {
         </label>
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Email</span>
-          <input
-            className="field"
+          <Input
             type="email"
             value={form.email}
             required
@@ -82,8 +81,7 @@ function Register() {
         </label>
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Password</span>
-          <input
-            className="field"
+          <Input
             type="password"
             value={form.password}
             required
@@ -95,8 +93,7 @@ function Register() {
         {codeSent && (
           <label className="text-sm">
             <span className="mb-1.5 block font-medium text-ink-secondary">Verification code</span>
-            <input
-              className="field"
+            <Input
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -110,10 +107,10 @@ function Register() {
             <span className="mt-1 block text-xs text-muted">We sent a 6-digit code to {form.email}. It expires in 10 minutes.</span>
           </label>
         )}
-        <button type="submit" className="btn btn-primary mt-2 group" disabled={busy}>
+        <Button type="submit" className="mt-2 group" disabled={busy}>
           {codeSent ? <MailCheck className="h-4 w-4" aria-hidden="true" /> : <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" aria-hidden="true" />}
           {busy ? "Please wait..." : codeSent ? "Verify and create account" : "Send verification code"}
-        </button>
+        </Button>
       </form>
       {error && (
         <div role="alert" className="mt-4 flex items-center gap-2 rounded-md border border-loss/50 bg-loss/10 p-3 text-sm text-loss">

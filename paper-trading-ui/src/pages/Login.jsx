@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LogIn, AlertTriangle } from "lucide-react";
 import AuthShell from "../components/AuthShell";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
@@ -41,8 +43,7 @@ function Login() {
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Email</span>
-          <input
-            className="field"
+          <Input
             type="email"
             value={form.email}
             required
@@ -52,8 +53,7 @@ function Login() {
         </label>
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Password</span>
-          <input
-            className="field"
+          <Input
             type="password"
             value={form.password}
             required
@@ -61,10 +61,10 @@ function Login() {
             disabled={busy}
           />
         </label>
-        <button type="submit" className="btn btn-primary mt-2 group" disabled={busy}>
+        <Button type="submit" className="mt-2 group" disabled={busy}>
           <LogIn className="h-4 w-4 transition-transform group-hover:-translate-x-1" aria-hidden="true" />
           {busy ? "Logging in..." : "Log in"}
-        </button>
+        </Button>
       </form>
       {error && (
         <div role="alert" className="mt-4 flex items-center gap-2 rounded-md border border-loss/50 bg-loss/10 p-3 text-sm text-loss">

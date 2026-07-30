@@ -5,13 +5,16 @@ import HoldingsTable from "../components/HoldingsTable";
 import Skeleton, { StatSkeleton } from "../components/Skeleton";
 import { getPortfolio } from "../services/marketApi";
 import { deltaClass, money, percent, signedMoney } from "../lib/format";
+import { Card } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { PageContainer } from "../components/ui/PageContainer";
 
 function Stat({ label, value, tone }) {
   return (
-    <div className="card p-4">
+    <Card className="p-4">
       <div className="text-xs uppercase text-muted">{label}</div>
       <div className={`tnum mt-2 text-2xl font-semibold ${tone || "text-ink"}`}>{value}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -32,7 +35,7 @@ function AllocationBar({ label, value, total, tone = "bg-accent" }) {
 
 function FirstRunCard() {
   return (
-    <div className="card-elevated mt-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card elevated className="mt-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-accent/60 bg-accent/10 text-accent">
           <PlayCircle className="h-5 w-5" aria-hidden="true" />
@@ -42,11 +45,13 @@ function FirstRunCard() {
           <p className="mt-1 text-sm text-muted">Pick a symbol, compare the live candle, and place a small market or limit order.</p>
         </div>
       </div>
-      <Link to="/market" className="btn btn-primary shrink-0">
-        Open Market
-        <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-      </Link>
-    </div>
+      <Button asChild className="shrink-0">
+        <Link to="/market">
+          Open Market
+          <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </Button>
+    </Card>
   );
 }
 
@@ -69,7 +74,7 @@ function Dashboard() {
   const hasActivity = positions.length > 0 || Number(portfolio?.totalUnrealizedPnl || 0) !== 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
+    <PageContainer>
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -115,15 +120,15 @@ function Dashboard() {
       {!loading && !hasActivity && <FirstRunCard />}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="card p-4">
+        <Card className="p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Holdings</h2>
             <span className="text-sm text-muted">{positions.length} open</span>
           </div>
           {loading ? <Skeleton className="h-48 w-full" /> : <HoldingsTable positions={positions} />}
-        </div>
+        </Card>
 
-        <div className="card p-4">
+        <Card className="p-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-accent" aria-hidden="true" />
             <h2 className="font-semibold">Performance</h2>
@@ -158,9 +163,9 @@ function Dashboard() {
               </>
             )}
           </div>
-        </div>
+        </Card>
       </section>
-    </main>
+    </PageContainer>
   );
 }
 

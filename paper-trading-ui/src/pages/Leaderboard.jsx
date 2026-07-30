@@ -4,6 +4,8 @@ import Skeleton from "../components/Skeleton";
 import StatusBadge from "../components/StatusBadge";
 import { getLeaderboard } from "../services/marketApi";
 import { deltaClass, money, percent } from "../lib/format";
+import { Card } from "../components/ui/Card";
+import { PageContainer } from "../components/ui/PageContainer";
 
 function Leaderboard() {
   const [entries, setEntries] = useState([]);
@@ -22,7 +24,7 @@ function Leaderboard() {
   }, [limit]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
+    <PageContainer className="pb-24 pt-6 md:pb-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -49,21 +51,21 @@ function Leaderboard() {
       {error && <div className="mb-4 rounded-md border border-loss/50 p-3 text-sm text-loss">{error}</div>}
 
       {loading && (
-        <div className="card p-4">
+        <Card className="p-4">
           <Skeleton className="mb-4 h-5 w-40" />
           <div className="space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
               <Skeleton key={index} className="h-9 w-full" />
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {!loading && (
-      <div className="card overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="grid gap-3 p-3 md:hidden">
           {entries.map((entry) => (
-            <article key={entry.userId} className="rounded-md border border-line bg-plane p-3">
+            <Card as="article" key={entry.userId} className="p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="tnum text-lg font-semibold text-ink">#{entry.rank}</div>
@@ -83,7 +85,7 @@ function Leaderboard() {
                   <div className={`tnum mt-1 font-semibold ${deltaClass(entry.roiPct)}`}>{percent(entry.roiPct)}</div>
                 </div>
               </div>
-            </article>
+            </Card>
           ))}
         </div>
         <div className="hidden overflow-x-auto md:block">
@@ -125,9 +127,9 @@ function Leaderboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
       )}
-    </main>
+    </PageContainer>
   );
 }
 

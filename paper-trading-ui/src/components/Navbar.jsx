@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { BarChart3, Gauge, LogOut, Trophy, UserCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/ui/Button";
 
 const LINKS = [
   { to: "/", label: "Dashboard", end: true, icon: Gauge },
@@ -52,10 +53,10 @@ function Navbar() {
               Demo account{" "}
               <strong className="text-ink-secondary">{user?.full_name || user?.username || "..."}</strong>
             </span>
-            <button type="button" className="btn btn-primary py-1.5 text-sm" onClick={logout}>
+            <Button variant="primary" className="py-1.5 text-sm h-8" onClick={logout}>
               <LogOut className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Log out</span>
-            </button>
+            </Button>
           </div>
         </div>
       </nav>

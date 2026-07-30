@@ -1,4 +1,6 @@
 import { Activity, BarChart3, ShieldCheck } from "lucide-react";
+import { Card } from "./ui/Card";
+import { PageContainer } from "./ui/PageContainer";
 
 function AuthShell({ eyebrow, title, children, footer }) {
   return (
@@ -37,7 +39,7 @@ function AuthShell({ eyebrow, title, children, footer }) {
       </section>
 
       <main className="grid place-items-center lg:min-h-[calc(100vh-4rem)]">
-        <div className="w-full max-w-sm">
+        <PageContainer className="w-full max-w-sm p-0 md:p-0">
           <div className="mb-6 text-center lg:hidden">
             <span className="inline-flex items-center gap-2 text-xl font-bold tracking-tight">
               <span className="grid h-7 w-7 place-items-center rounded-md bg-accent text-sm font-black text-plane">
@@ -48,13 +50,13 @@ function AuthShell({ eyebrow, title, children, footer }) {
             <p className="mt-2 text-sm text-muted">{eyebrow}</p>
           </div>
 
-          <div className="card-elevated p-6">
+          <Card elevated className="p-6">
             <h1 className="mb-4 text-lg font-semibold">{title}</h1>
             {children}
-          </div>
+          </Card>
 
           {footer}
-        </div>
+        </PageContainer>
       </main>
     </div>
   );

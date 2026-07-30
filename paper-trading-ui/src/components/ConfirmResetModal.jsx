@@ -1,5 +1,7 @@
 import { AlertTriangle, X } from "lucide-react";
 import { money } from "../lib/format";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
 
 function ConfirmResetModal({ open, portfolio, pendingCount, busy, confirmText, onConfirmText, onCancel, onConfirm }) {
   if (!open) return null;
@@ -43,15 +45,15 @@ function ConfirmResetModal({ open, portfolio, pendingCount, busy, confirmText, o
 
           <label className="block text-sm">
             <span className="mb-1 block text-muted">Type RESET to confirm</span>
-            <input className="field" value={confirmText} onChange={(e) => onConfirmText(e.target.value)} autoFocus />
+            <Input value={confirmText} onChange={(e) => onConfirmText(e.target.value)} autoFocus />
           </label>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-line p-4">
-          <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
-          <button type="button" className="btn border-loss/70 bg-loss text-white hover:bg-loss/90" onClick={onConfirm} disabled={!canConfirm}>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
+          <Button variant="primary" className="border-loss/70 bg-loss text-white hover:bg-loss/90 shadow-loss/20 hover:shadow-loss/40" onClick={onConfirm} disabled={!canConfirm}>
             {busy ? "Resetting..." : "Reset Account"}
-          </button>
+          </Button>
         </div>
       </section>
     </div>

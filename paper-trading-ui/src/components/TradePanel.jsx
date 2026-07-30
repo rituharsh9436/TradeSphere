@@ -3,6 +3,9 @@ import { ArrowDownRight, ArrowUpRight, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { money, qty } from "../lib/format";
 import { placeAdvancedOrder, placeLimitOrder, placeOrder } from "../services/marketApi";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Badge } from "./ui/Badge";
 
 const QUICK_QTY = ["1", "5", "10"];
 const PCT_QTY = [25, 50, 100];
@@ -110,29 +113,31 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
             <div className="text-xs uppercase text-muted">{symbol}</div>
             <div className="tnum mt-0.5 text-2xl font-bold tracking-tight text-ink">{money(price)}</div>
           </div>
-          <span className="rounded-md bg-accent/10 border border-accent/20 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-accent">
+          <Badge variant="default" className="text-[11px] font-bold tracking-wide">
             Live
-          </span>
+          </Badge>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <Button
           type="button"
           onClick={() => setSide("BUY")}
-          className={`btn h-11 transition-all ${side === "BUY" ? "btn-up shadow-[0_0_12px_rgba(33,201,131,0.15)] ring-1 ring-gain/50" : "btn-ghost opacity-70 hover:opacity-100"}`}
+          variant={side === "BUY" ? "up" : "ghost"}
+          className={`h-11 transition-all ${side === "BUY" ? "shadow-[0_0_12px_rgba(33,201,131,0.15)] ring-1 ring-gain/50" : "opacity-70 hover:opacity-100"}`}
         >
           <ArrowUpRight className={`h-4 w-4 ${side === "BUY" ? "" : "text-gain"}`} aria-hidden="true" />
           Buy
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setSide("SELL")}
-          className={`btn h-11 transition-all ${side === "SELL" ? "btn-down shadow-[0_0_12px_rgba(255,91,107,0.15)] ring-1 ring-loss/50" : "btn-ghost opacity-70 hover:opacity-100"}`}
+          variant={side === "SELL" ? "down" : "ghost"}
+          className={`h-11 transition-all ${side === "SELL" ? "shadow-[0_0_12px_rgba(255,91,107,0.15)] ring-1 ring-loss/50" : "opacity-70 hover:opacity-100"}`}
         >
           <ArrowDownRight className={`h-4 w-4 ${side === "SELL" ? "" : "text-loss"}`} aria-hidden="true" />
           Sell
-        </button>
+        </Button>
       </div>
 
       <label className="text-sm">
@@ -152,8 +157,8 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
 
       <label className="text-sm">
         <span className="mb-1.5 block font-medium text-ink-secondary">Quantity</span>
-        <input
-          className="field tnum font-medium"
+        <Input
+          className="tnum font-medium"
           type="number"
           min="0"
           step="any"
@@ -178,8 +183,8 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
       {isLimit && (
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Limit Price</span>
-          <input
-            className="field tnum font-medium"
+          <Input
+            className="tnum font-medium"
             type="number"
             min="0"
             step="any"
@@ -193,8 +198,8 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
       {(orderType === "STOP_LOSS" || orderType === "TAKE_PROFIT") && (
         <label className="text-sm">
           <span className="mb-1.5 block font-medium text-ink-secondary">Trigger Price</span>
-          <input
-            className="field tnum font-medium"
+          <Input
+            className="tnum font-medium"
             type="number"
             min="0"
             step="any"
@@ -222,8 +227,8 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
             <span className="mb-1.5 block font-medium text-ink-secondary">
               Trail {trailType === "AMOUNT" ? "Amount" : "Percent"}
             </span>
-            <input
-              className="field tnum font-medium"
+            <Input
+              className="tnum font-medium"
               type="number"
               min="0"
               step="any"
@@ -269,15 +274,18 @@ function TradePanel({ symbol, price, portfolio, onOrderPlaced }) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={submit}
-        className={`btn group h-12 text-base shadow-sm transition-all ${side === "BUY" ? "btn-up hover:shadow-[0_4px_12px_rgba(33,201,131,0.2)]" : "btn-down hover:shadow-[0_4px_12px_rgba(255,91,107,0.2)]"}`}
-        disabled={busy}
-      >
-        <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
-        {busy ? "Submitting..." : `${side} ${symbol}`}
-      </button>
+      <div className="fixed bottom-[60px] left-0 z-40 w-full border-t border-line bg-surface p-4 shadow-2xl lg:static lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none">
+        <Button
+          type="button"
+          onClick={submit}
+          variant={side === "BUY" ? "up" : "down"}
+          className={`group h-12 w-full text-base shadow-sm transition-all ${side === "BUY" ? "hover:shadow-[0_4px_12px_rgba(33,201,131,0.2)]" : "hover:shadow-[0_4px_12px_rgba(255,91,107,0.2)]"}`}
+          disabled={busy}
+        >
+          <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+          {busy ? "Submitting..." : `${side} ${symbol}`}
+        </Button>
+      </div>
 
       {status && (
         <div role="status" className={`rounded-md border p-3 text-sm ${

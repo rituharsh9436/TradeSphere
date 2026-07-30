@@ -6,8 +6,11 @@ import Skeleton from "../components/Skeleton";
 import StatusBadge from "../components/StatusBadge";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
-import { cancelOrder, deleteAccount, getOrders, getPortfolio, resetAccount } from "../services/marketApi";
+import { deleteAccount, getOrders, getPortfolio, resetAccount, cancelOrder } from "../services/marketApi";
 import { money, qty } from "../lib/format";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { PageContainer } from "../components/ui/PageContainer";
 
 function Profile() {
   const { user, logout } = useAuth();
@@ -96,7 +99,7 @@ function Profile() {
   const pending = orders.filter((o) => o.status === "PENDING");
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:pb-6">
+    <PageContainer className="pb-24 pt-6 md:pb-6">
       <Toast message={message || error} type={message ? "success" : "error"} onClose={() => { setMessage(null); setError(null); }} />
       <ConfirmResetModal
         open={resetOpen}
@@ -124,14 +127,14 @@ function Profile() {
           <p className="text-sm text-muted">{user?.email}</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn btn-ghost border-loss/70 text-loss" onClick={() => setResetOpen(true)} disabled={busy}>
+          <Button variant="ghost" className="border-loss/70 text-loss hover:bg-loss/10" onClick={() => setResetOpen(true)} disabled={busy}>
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Reset Account
-          </button>
-          <button type="button" className="btn btn-ghost border-loss/70 text-loss" onClick={() => setDeleteOpen(true)} disabled={busy}>
+          </Button>
+          <Button variant="ghost" className="border-loss/70 text-loss hover:bg-loss/10" onClick={() => setDeleteOpen(true)} disabled={busy}>
             <Trash2 className="h-4 w-4" aria-hidden="true" />
             Delete Account
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -144,27 +147,27 @@ function Profile() {
           </>
         ) : (
           <>
-            <div className="card p-4">
+            <Card className="p-4">
               <div className="text-xs uppercase text-muted">Full name</div>
               <div className="mt-2 text-2xl font-semibold text-ink">{user?.full_name || user?.username}</div>
-            </div>
-            <div className="card p-4">
+            </Card>
+            <Card className="p-4">
               <div className="text-xs uppercase text-muted">Username</div>
               <div className="mt-2 text-2xl font-semibold text-ink">{user?.username}</div>
-            </div>
-            <div className="card p-4">
+            </Card>
+            <Card className="p-4">
               <div className="text-xs uppercase text-muted">Cash</div>
               <div className="tnum mt-2 text-2xl font-semibold">{money(portfolio?.cashBalance)}</div>
-            </div>
-            <div className="card p-4">
+            </Card>
+            <Card className="p-4">
               <div className="text-xs uppercase text-muted">Pending Orders</div>
               <div className="tnum mt-2 text-2xl font-semibold">{pending.length}</div>
-            </div>
+            </Card>
           </>
         )}
       </section>
 
-      <section className="card mt-6 p-4">
+      <Card as="section" className="mt-6 p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-semibold">Order History</h2>
           <span className="text-sm text-muted">{orders.length} total</span>
@@ -214,10 +217,10 @@ function Profile() {
                 </div>
               </div>
               {order.status === "PENDING" && (
-                <button type="button" className="btn btn-ghost mt-3 w-full px-3 py-1 text-xs" disabled={busy} onClick={() => onCancel(order.id)}>
+                <Button variant="ghost" className="mt-3 w-full px-3 py-1 text-xs" disabled={busy} onClick={() => onCancel(order.id)}>
                   <XCircle className="h-4 w-4" aria-hidden="true" />
                   Cancel
-                </button>
+                </Button>
               )}
             </article>
           ))}
@@ -260,15 +263,15 @@ function Profile() {
                   <td className="py-3 pr-4 text-muted">{new Date(order.created_at).toLocaleString()}</td>
                   <td className="py-3 pr-4 text-right">
                     {order.status === "PENDING" ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost px-3 py-1 text-xs"
+                      <Button
+                        variant="ghost"
+                        className="px-3 py-1 text-xs"
                         disabled={busy}
                         onClick={() => onCancel(order.id)}
                       >
                         <XCircle className="h-4 w-4" aria-hidden="true" />
                         Cancel
-                      </button>
+                      </Button>
                     ) : (
                       <span className="text-muted">-</span>
                     )}
@@ -287,8 +290,8 @@ function Profile() {
         </div>
         </>
         )}
-      </section>
-    </main>
+      </Card>
+    </PageContainer>
   );
 }
 

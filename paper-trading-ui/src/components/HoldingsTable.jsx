@@ -1,4 +1,5 @@
 import { deltaClass, money, percent, qty, signedMoney } from "../lib/format";
+import { Card } from "./ui/Card";
 
 function HoldingsTable({ positions }) {
   if (!positions?.length) {
@@ -13,7 +14,7 @@ function HoldingsTable({ positions }) {
     <>
       <div className="grid gap-3 md:hidden">
         {positions.map((p) => (
-          <article key={p.symbol} className="rounded-md border border-line bg-plane p-3">
+          <Card key={p.symbol} as="article" className="p-3">
             <div className="mb-3 flex items-center justify-between">
               <span className="font-semibold text-ink">{p.symbol}</span>
               <span className={`tnum font-semibold ${deltaClass(p.unrealizedPnlPct)}`}>{percent(p.unrealizedPnlPct)}</span>
@@ -36,7 +37,7 @@ function HoldingsTable({ positions }) {
                 <div className={`tnum mt-1 font-semibold ${deltaClass(p.unrealizedPnl)}`}>{signedMoney(p.unrealizedPnl)}</div>
               </div>
             </div>
-          </article>
+          </Card>
         ))}
       </div>
 
