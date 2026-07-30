@@ -1,18 +1,21 @@
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { createChart, CandlestickSeries } from "lightweight-charts";
+import { Maximize, Minimize } from "lucide-react";
 
 // Thin renderer over lightweight-charts. All OHLC/tick math lives upstream in
 // lib/candles; this component only draws.
 function CandlestickChart({ candles, seriesKey }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
+  const chartWrapperRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const prevKeyRef = useRef(null);
 
   useEffect(() => {
-    const chart = createChart(containerRef.current, {
-      width: containerRef.current.clientWidth,
-      height: 460,
+    const chart = createChart(chartWrapperRef.current, {
+      width: chartWrapperRef.current.clientWidth,
+      height: chartWrapperRef.current.clientHeight || 460,
       layout: { background: { color: "transparent" }, textColor: "#A1A1AA" },
       grid: {
         vertLines: { color: "rgba(255, 255, 255, 0.05)" },
@@ -36,13 +39,16 @@ function CandlestickChart({ candles, seriesKey }) {
     seriesRef.current = series;
     prevKeyRef.current = null;
 
-    const onResize = () => {
-      if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
-    };
-    window.addEventListener("resize", onResize);
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (entries.length === 0 || entries[0].target !== chartWrapperRef.current) return;
+      const newRect = entries[0].contentRect;
+      chart.applyOptions({ width: newRect.width, height: newRect.height });
+    });
+
+    resizeObserver.observe(chartWrapperRef.current);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      resizeObserver.disconnect();
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
@@ -64,10 +70,21 @@ function CandlestickChart({ candles, seriesKey }) {
   return (
     <div 
       ref={containerRef} 
-      className="h-[460px] w-full" 
+      className={`relative w-full ${isFullscreen ? "fixed inset-0 z-50 bg-surface flex flex-col p-4 md:p-8" : "h-[460px]"}`} 
       role="region"
       aria-label={`Interactive candlestick chart for ${symbol}`}
-    />
+    >
+      <div className="absolute right-4 top-4 z-10">
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="rounded-md border border-line bg-surface/80 p-2 text-muted backdrop-blur transition-colors hover:bg-surface hover:text-ink shadow-sm"
+          aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+      </div>
+      <div ref={chartWrapperRef} className={`w-full ${isFullscreen ? "flex-1" : "h-full"}`} />
+    </div>
   );
 }
 

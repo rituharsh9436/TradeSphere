@@ -76,7 +76,7 @@ function Market() {
   }
 
   return (
-    <PageContainer className="pb-24 pt-6 md:pb-6">
+    <PageContainer maxWidth="max-w-[1400px]" className="pb-24 pt-6 md:pb-6">
       <Toast message={toast?.message} type={toast?.ok ? "success" : "error"} onClose={() => setToast(null)} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
