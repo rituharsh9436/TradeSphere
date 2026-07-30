@@ -36,13 +36,15 @@ if (trustProxy !== undefined) {
 app.use(requestLogger);
 
 // Security & parsing middleware
-app.use(helmet()); // sensible security headers (CSP off by default for a JSON API)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // sensible security headers (CSP off by default for a JSON API)
 // Restrict CORS to an allowlist when CORS_ORIGIN is set (comma-separated origins).
 // Browser origins never include a path, so this must be e.g.
 // https://trade--sphere.vercel.app — not /login or any other route.
 const corsOrigin = process.env.CORS_ORIGIN;
 const allowedOrigins = corsOrigin
-  ? corsOrigin.split(',').map((origin) => origin.trim()).filter(Boolean)
+  ? corsOrigin.split(',').map((origin) => origin.trim().replace(/\/$/, '')).filter(Boolean)
   : process.env.NODE_ENV === 'production'
     ? ['https://trade--sphere.vercel.app']
     : null;
